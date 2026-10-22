@@ -9,24 +9,52 @@ from __future__ import annotations
 
 import os
 
+
+def _env(name: str, default: str) -> str:
+    """Env var value, treating a missing OR blank value as the default.
+
+    GitHub Actions sets every optional secret referenced in a workflow's
+    `env:` block to an EMPTY STRING when the secret isn't defined. A bare
+    os.environ.get(name, default) would then return "" (not the default),
+    so int("")/model calls break. This collapses missing and blank to one
+    thing: fall back to the default.
+    """
+    val = os.environ.get(name)
+    return default if val is None or val.strip() == "" else val.strip()
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(_env(name, str(default)))
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(_env(name, str(default)))
+    except ValueError:
+        return default
+
+
 # --------------------------------------------------------------------------
 # Scoring
 # --------------------------------------------------------------------------
 
 # Only listings scoring >= this land in the sheet. Env override wins so you
 # can tweak it from GitHub Actions without a code change.
-SCORE_THRESHOLD: int = int(os.environ.get("SCORE_THRESHOLD", "65"))
+SCORE_THRESHOLD: int = _env_int("SCORE_THRESHOLD", 65)
 
 # LLM provider + model, both swappable via env.
 #   LLM_PROVIDER: "anthropic" (default) or "openai"
 #   LLM_MODEL:    a CURRENT fast, low-cost model string (Haiku-class).
-LLM_PROVIDER: str = os.environ.get("LLM_PROVIDER", "anthropic").lower()
-LLM_MODEL: str = os.environ.get("LLM_MODEL", "claude-haiku-5-5")
+LLM_PROVIDER: str = _env("LLM_PROVIDER", "anthropic").lower()
+LLM_MODEL: str = _env("LLM_MODEL", "claude-haiku-5-5")
 
 # --------------------------------------------------------------------------
 # Timezone (dates written into the sheet)
 # --------------------------------------------------------------------------
-TIMEZONE: str = os.environ.get("TIMEZONE", "Africa/Lagos")  # UTC+1
+TIMEZONE: str = _env("TIMEZONE", "Africa/Lagos")  # UTC+1
 
 # --------------------------------------------------------------------------
 # Source on/off toggles. Flip any to False to skip that source entirely.
@@ -136,10 +164,10 @@ CATEGORY_KEYWORDS: list[str] = [
 DESCRIPTION_MAX_CHARS: int = 2000
 
 # Small politeness delay (seconds) between external calls.
-REQUEST_DELAY_SECONDS: float = float(os.environ.get("REQUEST_DELAY_SECONDS", "0.5"))
+REQUEST_DELAY_SECONDS: float = _env_float("REQUEST_DELAY_SECONDS", 0.5)
 
 # Descriptive User-Agent for sources that require/appreciate one.
-USER_AGENT: str = os.environ.get(
+USER_AGENT: str = _env(
     "USER_AGENT",
     "AutomatedJobSearch/1.0 (+https://github.com/nahss; daily job & lead agent)",
 )
