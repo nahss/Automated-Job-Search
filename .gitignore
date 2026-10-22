@@ -1,8 +1,13 @@
-# secrets
+# secrets -- never commit real credentials (this is a public repo)
 .env
+.env.*
+!.env.example
 *.key
-service-account*.json
+*.pem
+*credentials*.json
+*service-account*.json
 google-service-account*.json
+*-key.json
 
 # python
 __pycache__/
