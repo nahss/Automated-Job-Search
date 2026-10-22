@@ -72,11 +72,17 @@ def fetch() -> list[Listing]:
         return []
 
     now = datetime.now(timezone.utc)
-    after = (now - timedelta(days=1)).replace(microsecond=0)
+    after = now - timedelta(days=1)
+    # PH's DateTime scalar wants canonical ISO-8601 with a trailing Z.
+    def _z(dt: datetime) -> str:
+        return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     variables = {
-        "after": after.isoformat(),
-        "before": now.replace(microsecond=0).isoformat(),
-        "first": config.FETCH_CAPS.get("producthunt", 50),
+        "after": _z(after),
+        "before": _z(now),
+        # Product Hunt caps the posts connection at 20 per query; asking for
+        # more makes the whole GraphQL call error out. Clamp regardless of
+        # the config fetch cap.
+        "first": min(config.FETCH_CAPS.get("producthunt", 20), 20),
     }
 
     try:
