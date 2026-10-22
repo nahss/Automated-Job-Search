@@ -1,0 +1,17 @@
+# secrets
+.env
+*.key
+service-account*.json
+google-service-account*.json
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+
+# local scratch
+*.local
+.DS_Store

@@ -1,0 +1,40 @@
+name: Daily Job & Lead Agent
+
+on:
+  schedule:
+    # 05:00 UTC == 06:00 Africa/Lagos (UTC+1).
+    # Change the "5" below to shift the run time (it is in UTC).
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}   # manual "Run workflow" button
+
+concurrency:
+  # Never let two runs write the sheet at once.
+  group: job-agent
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run agent
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LLM_PROVIDER: ${{ secrets.LLM_PROVIDER }}
+          LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          PRODUCTHUNT_TOKEN: ${{ secrets.PRODUCTHUNT_TOKEN }}
+          SCORE_THRESHOLD: ${{ secrets.SCORE_THRESHOLD }}
+        run: python -m src.main
