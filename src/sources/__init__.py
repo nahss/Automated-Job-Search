@@ -14,9 +14,12 @@ from ..models import Listing
 
 from . import (
     arbeitnow,
+    ashby,
+    greenhouse,
     hackernews,
     himalayas,
     jobicy,
+    lever,
     producthunt,
     reddit_gigs,
     remoteok,
@@ -35,6 +38,10 @@ REGISTRY: dict[str, Callable[[], list[Listing]]] = {
     "working_nomads": working_nomads.fetch,
     "weworkremotely": weworkremotely.fetch,
     "hackernews": hackernews.fetch,
+    # company career pages (ATS)
+    "greenhouse": greenhouse.fetch,
+    "lever": lever.fetch,
+    "ashby": ashby.fetch,
     "reddit_gigs": reddit_gigs.fetch,
     "producthunt": producthunt.fetch,
     "showhn": showhn.fetch,

@@ -69,6 +69,10 @@ SOURCES_ENABLED: dict[str, bool] = {
     "working_nomads": True,
     "weworkremotely": True,
     "hackernews": True,
+    # jobs -- direct from company career pages (ATS APIs); see TARGET_COMPANIES
+    "greenhouse": True,
+    "lever": True,
+    "ashby": True,
     # gigs
     "reddit_gigs": True,
     # leads
@@ -89,6 +93,9 @@ FETCH_CAPS: dict[str, int] = {
     "working_nomads": 50,
     "weworkremotely": 60,
     "hackernews": 80,
+    "greenhouse": 60,      # per company (max postings scanned)
+    "lever": 60,           # per company
+    "ashby": 60,           # per company
     "reddit_gigs": 50,     # per subreddit
     "producthunt": 50,
     "showhn": 30,
@@ -124,6 +131,42 @@ PRODUCTHUNT_TOPICS: list[str] = [
     "fintech",
     "design-tools",
     "productivity",
+]
+
+# --------------------------------------------------------------------------
+# Company career pages, tracked directly via their ATS (applicant tracking
+# system) public JSON APIs -- the same data that powers each company's own
+# "Careers" page, but clean and keyless. Roles are keyword-filtered to your
+# target categories before scoring, then land in the Jobs tab like any other.
+#
+# Each entry: the ATS platform + the company's "slug" (from its careers URL):
+#   greenhouse -> boards.greenhouse.io/<slug>        e.g. .../stripe
+#   lever      -> jobs.lever.co/<slug>               e.g. .../mozilla
+#   ashby      -> jobs.ashbyhq.com/<slug> (or <slug>.ashbyhq.com)
+# To find a company's slug, open its careers page and read the URL.
+#
+# NOTE: this starter list is best-effort -- a company can switch ATS or use a
+# different slug, in which case that entry simply returns nothing (the run
+# logs a warning and moves on). Verify/replace with the companies YOU want;
+# the per-company counts in the logs show which ones are producing results.
+TARGET_COMPANIES: list[dict] = [
+    # fintech / payments
+    {"ats": "greenhouse", "slug": "stripe", "name": "Stripe"},
+    {"ats": "greenhouse", "slug": "coinbase", "name": "Coinbase"},
+    {"ats": "greenhouse", "slug": "plaid", "name": "Plaid"},
+    {"ats": "ashby", "slug": "ramp", "name": "Ramp"},
+    # SaaS / product / dev tools (design-heavy orgs)
+    {"ats": "greenhouse", "slug": "figma", "name": "Figma"},
+    {"ats": "greenhouse", "slug": "notion", "name": "Notion"},
+    {"ats": "greenhouse", "slug": "vercel", "name": "Vercel"},
+    {"ats": "ashby", "slug": "linear", "name": "Linear"},
+    {"ats": "ashby", "slug": "posthog", "name": "PostHog"},
+    {"ats": "ashby", "slug": "replit", "name": "Replit"},
+    # larger SaaS
+    {"ats": "greenhouse", "slug": "databricks", "name": "Databricks"},
+    {"ats": "greenhouse", "slug": "gusto", "name": "Gusto"},
+    # lever examples
+    {"ats": "lever", "slug": "mozilla", "name": "Mozilla"},
 ]
 
 # --------------------------------------------------------------------------

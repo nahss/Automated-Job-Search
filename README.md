@@ -44,6 +44,12 @@ run never crashes, and every other source still writes.**
 
 - **Jobs:** Remotive, RemoteOK, Arbeitnow, Jobicy, Himalayas, Working Nomads,
   We Work Remotely (RSS), Hacker News "Who is hiring" (Algolia API).
+- **Jobs — direct from company career pages:** Greenhouse, Lever, and Ashby
+  public JSON APIs for a curated list of companies you track
+  (`TARGET_COMPANIES` in `src/config.py`). This is the same data that powers
+  each company's own Careers page — not web-scraping — so it's keyless,
+  stable, and ToS-friendly. Roles are keyword-filtered to your target
+  categories and land in the Jobs tab. See "Tracking companies directly" below.
 - **Gigs:** Reddit (`forhire`, `jobbit`, `DesignJobs`, `UI_Design`,
   `graphic_design`, `startups`, `hiring`) via the keyless `.json` path.
 - **Leads:** Product Hunt (GraphQL, needs a free token), Show HN (optional,
@@ -185,6 +191,26 @@ Everything a non-coder would reasonably want to change lives here with
 comments: source on/off toggles, the score threshold, per-source fetch caps,
 the subreddit list, the Product Hunt topic list, the pitch-deck keyword list,
 the category keyword list, and the timezone.
+
+### Tracking companies directly
+
+Edit `TARGET_COMPANIES` in `src/config.py` to follow specific companies'
+career pages via their ATS. Each entry is the platform + the company's
+**slug**, which you read straight from its careers URL:
+
+| ATS | Careers URL looks like | Entry |
+|-----|------------------------|-------|
+| Greenhouse | `boards.greenhouse.io/`**`stripe`** | `{"ats": "greenhouse", "slug": "stripe", "name": "Stripe"}` |
+| Lever | `jobs.lever.co/`**`mozilla`** | `{"ats": "lever", "slug": "mozilla", "name": "Mozilla"}` |
+| Ashby | `jobs.ashbyhq.com/`**`linear`** (or **`linear`**`.ashbyhq.com`) | `{"ats": "ashby", "slug": "linear", "name": "Linear"}` |
+
+The repo ships a **starter list** — best-effort examples across fintech /
+SaaS / dev-tools. A company can change ATS or slug; if so, that entry simply
+returns nothing and the run logs a warning. The per-company counts in the run
+logs (`greenhouse[stripe]: N matched`) show which entries are producing
+results, so you can prune and replace them with the companies you actually
+want. Not every employer uses one of these three systems, but a large share
+of startups and tech companies do.
 
 ---
 
