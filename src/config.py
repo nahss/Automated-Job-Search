@@ -45,6 +45,15 @@ def _env_float(name: str, default: float) -> float:
 # can tweak it from GitHub Actions without a code change.
 SCORE_THRESHOLD: int = _env_int("SCORE_THRESHOLD", 65)
 
+# Freshness: only keep listings posted within this many days. The job-board
+# and ATS APIs already serve only currently-OPEN roles; this adds a recency
+# cap on top. Set to 0 to disable (keep anything open regardless of age).
+MAX_POSTING_AGE_DAYS: int = _env_int("MAX_POSTING_AGE_DAYS", 7)
+
+# Some sources don't expose a reliable posted date. Keep those (False) so a
+# good role isn't dropped over missing metadata, or require a date (True).
+DROP_UNDATED_LISTINGS: bool = False
+
 # LLM provider + model, both swappable via env.
 #   LLM_PROVIDER: "anthropic" (default) or "openai"
 #   LLM_MODEL:    a CURRENT fast, low-cost model string (Haiku-class).
@@ -73,6 +82,7 @@ SOURCES_ENABLED: dict[str, bool] = {
     "greenhouse": True,
     "lever": True,
     "ashby": True,
+    "smartrecruiters": True,
     # gigs
     "reddit_gigs": True,
     # leads
@@ -96,6 +106,7 @@ FETCH_CAPS: dict[str, int] = {
     "greenhouse": 60,      # per company (max postings scanned)
     "lever": 60,           # per company
     "ashby": 60,           # per company
+    "smartrecruiters": 100,  # per company
     "reddit_gigs": 50,     # per subreddit
     "producthunt": 50,
     "showhn": 30,
@@ -140,10 +151,13 @@ PRODUCTHUNT_TOPICS: list[str] = [
 # target categories before scoring, then land in the Jobs tab like any other.
 #
 # Each entry: the ATS platform + the company's "slug" (from its careers URL):
-#   greenhouse -> boards.greenhouse.io/<slug>        e.g. .../stripe
-#   lever      -> jobs.lever.co/<slug>               e.g. .../mozilla
-#   ashby      -> jobs.ashbyhq.com/<slug> (or <slug>.ashbyhq.com)
-# To find a company's slug, open its careers page and read the URL.
+#   greenhouse      -> boards.greenhouse.io/<slug>        e.g. .../stripe
+#   lever           -> jobs.lever.co/<slug>               e.g. .../mozilla
+#   ashby           -> jobs.ashbyhq.com/<slug> (or <slug>.ashbyhq.com)
+#   smartrecruiters -> jobs.smartrecruiters.com/<slug>    e.g. .../Square
+# To find a company's slug, open its careers page and read the URL. (The
+# SmartRecruiters adapter is enabled and ready -- add companies here in the
+# same format; none are seeded because its identifiers are less predictable.)
 #
 # NOTE: this starter list is best-effort -- a company can switch ATS or use a
 # different slug, in which case that entry simply returns nothing (the run

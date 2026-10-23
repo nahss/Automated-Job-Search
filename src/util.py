@@ -131,3 +131,38 @@ def to_iso(value: Any) -> str:
         except (OverflowError, OSError, ValueError):
             return str(value)
     return str(value)
+
+
+def parse_dt(value: Any) -> "datetime | None":
+    """Best-effort parse of assorted date values to an aware UTC datetime.
+
+    Handles ISO-8601 (incl. trailing Z and offsets), plain dates, RFC-822
+    (RSS feeds), and unix timestamps. Returns None if unparseable -- callers
+    decide whether an undatable listing is kept or dropped.
+    """
+    if value in (None, ""):
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(value), tz=timezone.utc)
+        except (OverflowError, OSError, ValueError):
+            return None
+    s = str(value).strip()
+    if not s:
+        return None
+    # ISO-8601 (fromisoformat on 3.11+ accepts most forms; normalize Z).
+    iso = s[:-1] + "+00:00" if s.endswith("Z") else s
+    try:
+        dt = datetime.fromisoformat(iso)
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        pass
+    # RFC-822 (e.g. "Mon, 20 Oct 2026 12:00:00 +0000") from RSS feeds.
+    try:
+        from email.utils import parsedate_to_datetime
+        dt = parsedate_to_datetime(s)
+        if dt is not None:
+            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError, IndexError):
+        pass
+    return None

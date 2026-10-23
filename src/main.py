@@ -98,6 +98,38 @@ def dedupe_in_memory(tagged: list[Tagged]) -> list[Tagged]:
     return out
 
 
+def filter_recent(tagged: list[Tagged]) -> list[Tagged]:
+    """Keep only listings posted within config.MAX_POSTING_AGE_DAYS.
+
+    Listings with no parseable date are kept (or dropped if
+    DROP_UNDATED_LISTINGS) so a good role isn't lost to missing metadata.
+    """
+    max_days = config.MAX_POSTING_AGE_DAYS
+    if not max_days or max_days <= 0:
+        return tagged
+    from datetime import datetime, timedelta, timezone
+    from .util import parse_dt
+    cutoff = datetime.now(timezone.utc) - timedelta(days=max_days)
+    out: list[Tagged] = []
+    dropped_old = dropped_undated = 0
+    for t in tagged:
+        dt = parse_dt(t.listing.posted_at)
+        if dt is None:
+            if config.DROP_UNDATED_LISTINGS:
+                dropped_undated += 1
+            else:
+                out.append(t)
+        elif dt >= cutoff:
+            out.append(t)
+        else:
+            dropped_old += 1
+    if dropped_old or dropped_undated:
+        log.info("recency: dropped %d older than %dd%s",
+                 dropped_old, max_days,
+                 f" + {dropped_undated} undated" if dropped_undated else "")
+    return out
+
+
 def score_stream(stream: str, items: list[Tagged],
                  cv: str) -> tuple[list[Tagged], int, int]:
     """Score (or draft, for leads) and keep only those >= threshold.
@@ -143,6 +175,7 @@ def run(dry_run: bool, only: list[str] | None) -> int:
     tagged, fetched = pull(only)
     reroute_gigs(tagged)
     tagged = dedupe_in_memory(tagged)
+    tagged = filter_recent(tagged)
 
     # Group by stream, preserving source names.
     by_stream: dict[str, list[Tagged]] = defaultdict(list)
