@@ -130,6 +130,24 @@ def filter_recent(tagged: list[Tagged]) -> list[Tagged]:
     return out
 
 
+def interleave_by_source(items: list[Tagged]) -> list[Tagged]:
+    """Round-robin items across their source so the per-stream scoring cap is
+    shared fairly. Without this, whichever source is listed first (a big job
+    board) would fill the cap and starve the rest (e.g. company career pages).
+    Order within each source is preserved."""
+    from collections import OrderedDict, deque
+    buckets: "OrderedDict[str, deque]" = OrderedDict()
+    for t in items:
+        buckets.setdefault(t.name, deque()).append(t)
+    queues = list(buckets.values())
+    out: list[Tagged] = []
+    while queues:
+        queues = [q for q in queues if q]
+        for q in queues:
+            out.append(q.popleft())
+    return out
+
+
 def score_stream(stream: str, items: list[Tagged],
                  cv: str) -> tuple[list[Tagged], int, int]:
     """Score (or draft, for leads) and keep only those >= threshold.
@@ -216,10 +234,12 @@ def run(dry_run: bool, only: list[str] | None) -> int:
         for t in items:
             new_counts[t.name] += 1
 
-        # Cap how many NEW listings we send to the LLM per stream.
+        # Interleave across sources so the cap is shared fairly, then cap how
+        # many NEW listings we send to the LLM per stream.
+        items = interleave_by_source(items)
         cap = config.MAX_SCORED_PER_STREAM
         if len(items) > cap:
-            log.info("%s: capping %d new -> %d before scoring",
+            log.info("%s: capping %d new -> %d before scoring (interleaved)",
                      label, len(items), cap)
             items = items[:cap]
 

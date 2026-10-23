@@ -117,7 +117,10 @@ REMOTIVE_MAX_CALLS: int = 4
 
 # Upper bound on how many NEW listings we send to the LLM per run, per
 # stream. Protects against a surprise flood of new postings blowing up cost.
-MAX_SCORED_PER_STREAM: int = 120
+# Listings are interleaved across sources before this cap is applied, so no
+# single source (e.g. a big job board) can starve the others of slots.
+# At Haiku prices this is ~$0.0002/listing, so 300 is only a few cents/run.
+MAX_SCORED_PER_STREAM: int = 300
 
 # --------------------------------------------------------------------------
 # Reddit (keyless path by default)
@@ -167,11 +170,9 @@ TARGET_COMPANIES: list[dict] = [
     # fintech / payments
     {"ats": "greenhouse", "slug": "stripe", "name": "Stripe"},
     {"ats": "greenhouse", "slug": "coinbase", "name": "Coinbase"},
-    {"ats": "greenhouse", "slug": "plaid", "name": "Plaid"},
     {"ats": "ashby", "slug": "ramp", "name": "Ramp"},
     # SaaS / product / dev tools (design-heavy orgs)
     {"ats": "greenhouse", "slug": "figma", "name": "Figma"},
-    {"ats": "greenhouse", "slug": "notion", "name": "Notion"},
     {"ats": "greenhouse", "slug": "vercel", "name": "Vercel"},
     {"ats": "ashby", "slug": "linear", "name": "Linear"},
     {"ats": "ashby", "slug": "posthog", "name": "PostHog"},
@@ -179,8 +180,9 @@ TARGET_COMPANIES: list[dict] = [
     # larger SaaS
     {"ats": "greenhouse", "slug": "databricks", "name": "Databricks"},
     {"ats": "greenhouse", "slug": "gusto", "name": "Gusto"},
-    # lever examples
-    {"ats": "lever", "slug": "mozilla", "name": "Mozilla"},
+    # NOTE: slugs verified against a live run (2026-10-23). Removed ones that
+    # 404'd: greenhouse/plaid, greenhouse/notion, lever/mozilla. Add your own
+    # here -- Lever and SmartRecruiters currently have no seeds.
 ]
 
 # --------------------------------------------------------------------------
