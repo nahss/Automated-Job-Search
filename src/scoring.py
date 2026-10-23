@@ -24,6 +24,11 @@ from . import config
 from .models import Listing
 from .util import log
 
+# Set to the message of the most recent LLM transport/API error (e.g. an
+# out-of-credits 400). main.py reads this to surface the real cause when a
+# run's scoring fails wholesale.
+LAST_ERROR: str = ""
+
 # --------------------------------------------------------------------------
 # CV loading
 # --------------------------------------------------------------------------
@@ -218,6 +223,8 @@ def score_listing(listing: Listing, cv: str) -> Optional[tuple[int, str]]:
     try:
         raw = _complete(_SCORE_SYSTEM, user, max_tokens=300)
     except Exception as e:
+        global LAST_ERROR
+        LAST_ERROR = str(e)
         log.warning("score failed for %s: %s", listing.job_id, e)
         return None
     obj = _extract_json(raw)
@@ -248,6 +255,8 @@ def draft_lead(listing: Listing, cv: str) -> Optional[tuple[int, str]]:
     try:
         raw = _complete(_OPENER_SYSTEM, user, max_tokens=300)
     except Exception as e:
+        global LAST_ERROR
+        LAST_ERROR = str(e)
         log.warning("opener failed for %s: %s", listing.job_id, e)
         return None
     obj = _extract_json(raw)

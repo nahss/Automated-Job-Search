@@ -98,16 +98,23 @@ def dedupe_in_memory(tagged: list[Tagged]) -> list[Tagged]:
     return out
 
 
-def score_stream(stream: str, items: list[Tagged], cv: str) -> list[Tagged]:
+def score_stream(stream: str, items: list[Tagged],
+                 cv: str) -> tuple[list[Tagged], int, int]:
     """Score (or draft, for leads) and keep only those >= threshold.
-    Returns kept items sorted by score desc."""
+
+    Returns (kept items sorted by score desc, attempts, failures) so the
+    caller can detect a wholesale LLM outage (every call failing).
+    """
     from . import scoring
     kept: list[Tagged] = []
+    attempts = failures = 0
     for t in items:
         l = t.listing
+        attempts += 1
         if stream == STREAM_LEAD:
             res = scoring.draft_lead(l, cv)
             if res is None:
+                failures += 1
                 continue
             fit, opener = res
             l.score, l.opener = fit, opener
@@ -116,13 +123,14 @@ def score_stream(stream: str, items: list[Tagged], cv: str) -> list[Tagged]:
         else:
             res = scoring.score_listing(l, cv)
             if res is None:
+                failures += 1
                 continue
             score, reason = res
             l.score, l.reason = score, reason
             if score >= config.SCORE_THRESHOLD:
                 kept.append(t)
     kept.sort(key=lambda t: (t.listing.score or 0), reverse=True)
-    return kept
+    return kept, attempts, failures
 
 
 # --------------------------------------------------------------------------
@@ -161,6 +169,7 @@ def run(dry_run: bool, only: list[str] | None) -> int:
 
     new_counts: dict[str, int] = defaultdict(int)
     written_counts: dict[str, int] = defaultdict(int)
+    total_attempts = total_failures = 0
 
     for stream, label in _STREAMS:
         items = by_stream.get(stream, [])
@@ -185,7 +194,9 @@ def run(dry_run: bool, only: list[str] | None) -> int:
             _print_fetch_only(label, items)
             continue
 
-        kept = score_stream(stream, items, cv)
+        kept, attempts, failures = score_stream(stream, items, cv)
+        total_attempts += attempts
+        total_failures += failures
 
         if dry_run:
             _print_scored(label, kept)
@@ -198,6 +209,22 @@ def run(dry_run: bool, only: list[str] | None) -> int:
         log.info("%s: wrote %d row(s)", label, written)
 
     _summary(fetched, new_counts, written_counts, dry_run)
+
+    # Fail-loud alerting: a wholesale scoring outage (every LLM call failing)
+    # would otherwise look like a quiet, successful run that wrote nothing --
+    # exactly what an out-of-credits / bad-key / bad-model situation produces.
+    # Exit non-zero so the GitHub Actions run goes red and notifies.
+    if total_failures:
+        log.warning("scoring: %d of %d LLM calls failed",
+                    total_failures, total_attempts)
+    if total_attempts > 0 and total_failures == total_attempts:
+        detail = (f" Cause: {scoring.LAST_ERROR}" if scoring.LAST_ERROR
+                  else " Check the 'score failed' warnings above.")
+        log.error("ALL %d scoring calls failed -- nothing was written. "
+                  "The LLM provider is likely out of credits, or the key/"
+                  "model is wrong.%s", total_attempts, detail)
+        return 3
+
     return 0
 
 
