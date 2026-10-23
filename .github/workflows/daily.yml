@@ -2,9 +2,13 @@ name: Daily Job & Lead Agent
 
 on:
   schedule:
-    # 05:00 UTC == 06:00 Africa/Lagos (UTC+1).
-    # Change the "5" below to shift the run time (it is in UTC).
-    - cron: "0 5 * * *"
+    # 04:32 UTC == 05:32 Africa/Lagos (UTC+1).
+    # NOTE: GitHub's scheduled cron is BEST-EFFORT, not guaranteed on time.
+    # Runs can be delayed minutes-to-hours (or rarely skipped) under load,
+    # and minute :00 is the most congested slot -- so we deliberately avoid
+    # it (minute 32) and run a little early, so a typical delay still lands
+    # in the morning. Change the time below (it is in UTC) to shift it.
+    - cron: "32 4 * * *"
   workflow_dispatch: {}   # manual "Run workflow" button
 
 concurrency:
