@@ -180,24 +180,27 @@ TARGET_COMPANIES: list[dict] = [
     {"ats": "ashby", "slug": "linear", "name": "Linear"},
     {"ats": "ashby", "slug": "posthog", "name": "PostHog"},
     {"ats": "ashby", "slug": "replit", "name": "Replit"},
+    {"ats": "ashby", "slug": "mazehq", "name": "Maze"},
+    {"ats": "ashby", "slug": "monarchmoney", "name": "Monarch Money"},
+    {"ats": "ashby", "slug": "rula", "name": "Rula"},
+    {"ats": "ashby", "slug": "secureframe", "name": "Secureframe"},
     # larger SaaS
     {"ats": "greenhouse", "slug": "databricks", "name": "Databricks"},
     {"ats": "greenhouse", "slug": "gusto", "name": "Gusto"},
-    # Lever (best-effort guesses -- verify via the next run's log, prune 404s)
-    {"ats": "lever", "slug": "netlify", "name": "Netlify"},
-    {"ats": "lever", "slug": "quora", "name": "Quora"},
-    {"ats": "lever", "slug": "scaleai", "name": "Scale AI"},
-    {"ats": "lever", "slug": "faire", "name": "Faire"},
-    {"ats": "lever", "slug": "plaid", "name": "Plaid"},
-    # SmartRecruiters (best-effort guesses -- identifiers are quirky and skew
-    # enterprise; verify via the log and prune the 404s)
-    {"ats": "smartrecruiters", "slug": "Square", "name": "Square"},
-    {"ats": "smartrecruiters", "slug": "Visa", "name": "Visa"},
-    {"ats": "smartrecruiters", "slug": "Ubisoft2", "name": "Ubisoft"},
-    # NOTE: greenhouse/ashby slugs above verified against a live run
-    # (2026-10-23). The lever/smartrecruiters entries are unverified guesses;
-    # the per-company counts in the logs show which ones actually resolve --
-    # replace with the companies YOU want.
+    # Lever (slugs taken from live design postings on jobs.lever.co; case matters)
+    {"ats": "lever", "slug": "appzen", "name": "AppZen"},
+    {"ats": "lever", "slug": "payjoy", "name": "PayJoy"},
+    {"ats": "lever", "slug": "UpMetrics", "name": "UpMetrics"},
+    {"ats": "lever", "slug": "shakacode", "name": "ShakaCode"},
+    {"ats": "lever", "slug": "pioneer-services", "name": "BNB Chain (Pioneer)"},
+    # SmartRecruiters (slugs from live postings on jobs.smartrecruiters.com)
+    {"ats": "smartrecruiters", "slug": "Wix2", "name": "Wix"},
+    {"ats": "smartrecruiters", "slug": "Xplor", "name": "Xplor"},
+    {"ats": "smartrecruiters", "slug": "PublicisGroupe", "name": "Publicis Groupe"},
+    # NOTE: greenhouse/ashby slugs verified against live runs; the lever/
+    # smartrecruiters/bonus-ashby slugs were pulled from live web-search of
+    # actual postings on those boards (2026-10-25). The per-company counts in
+    # the logs confirm which resolve -- prune any stragglers.
 ]
 
 # --------------------------------------------------------------------------
