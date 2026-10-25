@@ -10,15 +10,15 @@ a second request per posting.
 
 from __future__ import annotations
 
-from .. import config
+from .. import boards, config
 from ..models import Listing, STREAM_JOB
-from ..util import clip, get_json, log, matches_any, polite_sleep, to_iso
+from ..util import clip, company_size, get_json, log, matches_any, polite_sleep, to_iso
 
 _URL = "https://api.smartrecruiters.com/v1/companies/{slug}/postings"
 
 
 def _companies() -> list[dict]:
-    return [c for c in config.TARGET_COMPANIES if c.get("ats") == "smartrecruiters"]
+    return boards.boards_for("smartrecruiters")
 
 
 def _label(obj) -> str:
@@ -55,6 +55,11 @@ def fetch() -> list[Listing]:
             continue
 
         postings = data.get("content", []) if isinstance(data, dict) else []
+        # totalFound is the true board size (postings here are one page).
+        total = data.get("totalFound") if isinstance(data, dict) else None
+        if not isinstance(total, int):
+            total = len(postings)
+        size = company_size(total)
         kept = 0
         for p in postings:
             if not isinstance(p, dict):
@@ -84,6 +89,8 @@ def fetch() -> list[Listing]:
                 salary="",
                 url=url,
                 posted_at=to_iso(p.get("releasedDate", "")),
+                company_size=size,
+                open_roles=total,
             ))
             kept += 1
         if kept:

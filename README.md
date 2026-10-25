@@ -200,24 +200,43 @@ sorted best-fit (score) first — now over a fresh, open pool.
 
 ### Tracking companies directly
 
-Edit `TARGET_COMPANIES` in `src/config.py` to follow specific companies'
-career pages via their ATS. Each entry is the platform + the company's
-**slug**, which you read straight from its careers URL:
+`COMPANY_BOARDS` in `src/config.py` is the verified list of boards fetched
+every run — each is `(ats, slug)`, where the **slug** comes straight from the
+careers URL:
 
 | ATS | Careers URL looks like | Entry |
 |-----|------------------------|-------|
-| Greenhouse | `boards.greenhouse.io/`**`stripe`** | `{"ats": "greenhouse", "slug": "stripe", "name": "Stripe"}` |
-| Lever | `jobs.lever.co/`**`mozilla`** | `{"ats": "lever", "slug": "mozilla", "name": "Mozilla"}` |
-| Ashby | `jobs.ashbyhq.com/`**`linear`** (or **`linear`**`.ashbyhq.com`) | `{"ats": "ashby", "slug": "linear", "name": "Linear"}` |
-| SmartRecruiters | `jobs.smartrecruiters.com/`**`Square`** | `{"ats": "smartrecruiters", "slug": "Square", "name": "Square"}` |
+| Greenhouse | `boards.greenhouse.io/`**`stripe`** | `("greenhouse", "stripe")` |
+| Lever | `jobs.lever.co/`**`appzen`** | `("lever", "appzen")` |
+| Ashby | `jobs.ashbyhq.com/`**`linear`** | `("ashby", "linear")` |
+| SmartRecruiters | `jobs.smartrecruiters.com/`**`Wix2`** | `("smartrecruiters", "Wix2")` |
 
-The repo ships a **starter list** — best-effort examples across fintech /
-SaaS / dev-tools. A company can change ATS or slug; if so, that entry simply
-returns nothing and the run logs a warning. The per-company counts in the run
-logs (`greenhouse[stripe]: N matched`) show which entries are producing
-results, so you can prune and replace them with the companies you actually
-want. Not every employer uses one of these three systems, but a large share
-of startups and tech companies do.
+The per-company counts in the logs (`ashby[linear]: N matched`) show which
+entries produce results; a wrong/changed slug just logs a warning and is
+skipped.
+
+### Self-growing watchlist (discovery resolver)
+
+`SEED_COMPANIES` is a list of candidate company slugs. Each run, the resolver
+(`src/discovery.py`) looks each one up **Ashby-first** (the highest-yield ATS
+for startups), then Greenhouse, then Lever, trying slug variants
+(`radicalai`, `radical-ai`). Live boards are added to the watchlist and
+fetched going forward. It also resolves companies seen in the **Leads**
+(Product Hunt / Show HN) and **HN "Who is hiring"** streams, so the list
+grows itself. Every lookup — hit or miss — is cached in a **`_Watchlist`
+sheet tab** so names are resolved only once (`RESOLVER_MAX_PER_RUN` caps
+lookups per run). Toggle with `DISCOVERY_ENABLED` / `DISCOVER_FROM_LEADS` /
+`DISCOVER_FROM_HACKERNEWS`.
+
+### Company size + small-team fit
+
+Each board's total open-role count is a proxy for company size:
+`small` (≤ `COMPANY_SIZE_SMALL_MAX`, default 15), `mid` (≤ 60), else `large`.
+The Jobs tab gets a **Company size** column (e.g. `small (11)`), and the
+scoring prompt **boosts** founding/first-designer, 0→1, generalist, and
+seed/Series-A roles at small teams while **down-ranking** large/established
+ones. Large companies are kept (flagged) by default; set
+`DROP_LARGE_COMPANIES = True` to drop them entirely.
 
 ---
 
@@ -230,8 +249,10 @@ src/
   config.py                   # all the knobs
   models.py                   # Listing dataclass (normalized schema)
   scoring.py                  # LLM scoring + lead-opener drafting (prompts here)
-  sheets.py                   # gspread read/write + dedupe
-  util.py                     # http, logging, keyword/date helpers
+  sheets.py                   # gspread read/write + dedupe + _Watchlist tab
+  boards.py                   # company watchlist (config + discovered boards)
+  discovery.py                # Ashby-first resolver: company name -> ATS board
+  util.py                     # http, logging, keyword/date/size helpers
   sources/                    # one module per source, each fetch()->list[Listing]
 data/cv.md                    # paste your CV here
 requirements.txt

@@ -187,6 +187,17 @@ Scoring guidance (0-100):
          candidate lacks such as deep backend/ML engineering)
 
 Remote or global roles are preferred (candidate is in Lagos, Nigeria).
+
+SMALL-TEAM FIT (the candidate wants early, high-ownership roles):
+  - BOOST strongly: "founding designer", "first design hire", "first
+    designer", "design generalist", "0->1" / "0 to 1", "wear many hats";
+    seed / pre-seed / Series A; and companies with a small open-role count
+    (a "Company:" line below may say small/mid/large + how many open roles).
+  - DOWN-RANK: very large / established companies (large open-role count);
+    narrow senior-specialist roles that need deep enterprise experience.
+  - When a role is a strong small-team / founding fit, SAY SO briefly in the
+    reason (e.g. "founding designer at a seed fintech").
+
 Reply with STRICT JSON only, no prose, no code fences:
 {"score": <integer 0-100>, "reason": "<one short line, <= 18 words>"}"""
 
@@ -215,9 +226,16 @@ Reply with STRICT JSON only, no prose, no code fences:
 
 def score_listing(listing: Listing, cv: str) -> Optional[tuple[int, str]]:
     """Return (score, reason) or None if scoring failed (logged)."""
+    size_line = ""
+    if listing.company_size:
+        n = listing.open_roles
+        size_line = (f"Company: {listing.company} — {listing.company_size} team"
+                     + (f" (~{n} open roles total)" if n is not None else "")
+                     + "\n")
     user = (
         f"=== CANDIDATE CV ===\n{cv}\n\n"
-        f"=== LISTING ({listing.stream}) ===\n{listing.text_for_scoring()}\n\n"
+        f"=== LISTING ({listing.stream}) ===\n{size_line}"
+        f"{listing.text_for_scoring()}\n\n"
         "Score this listing now."
     )
     try:

@@ -156,52 +156,90 @@ PRODUCTHUNT_TOPICS: list[str] = [
 # "Careers" page, but clean and keyless. Roles are keyword-filtered to your
 # target categories before scoring, then land in the Jobs tab like any other.
 #
-# Each entry: the ATS platform + the company's "slug" (from its careers URL):
-#   greenhouse      -> boards.greenhouse.io/<slug>        e.g. .../stripe
-#   lever           -> jobs.lever.co/<slug>               e.g. .../mozilla
-#   ashby           -> jobs.ashbyhq.com/<slug> (or <slug>.ashbyhq.com)
-#   smartrecruiters -> jobs.smartrecruiters.com/<slug>    e.g. .../Square
-# To find a company's slug, open its careers page and read the URL. (The
-# SmartRecruiters adapter is enabled and ready -- add companies here in the
-# same format; none are seeded because its identifiers are less predictable.)
-#
-# NOTE: this starter list is best-effort -- a company can switch ATS or use a
-# different slug, in which case that entry simply returns nothing (the run
-# logs a warning and moves on). Verify/replace with the companies YOU want;
-# the per-company counts in the logs show which ones are producing results.
-TARGET_COMPANIES: list[dict] = [
-    # fintech / payments
-    {"ats": "greenhouse", "slug": "stripe", "name": "Stripe"},
-    {"ats": "greenhouse", "slug": "coinbase", "name": "Coinbase"},
-    {"ats": "ashby", "slug": "ramp", "name": "Ramp"},
-    # SaaS / product / dev tools (design-heavy orgs)
-    {"ats": "greenhouse", "slug": "figma", "name": "Figma"},
-    {"ats": "greenhouse", "slug": "vercel", "name": "Vercel"},
-    {"ats": "ashby", "slug": "linear", "name": "Linear"},
-    {"ats": "ashby", "slug": "posthog", "name": "PostHog"},
-    {"ats": "ashby", "slug": "replit", "name": "Replit"},
-    {"ats": "ashby", "slug": "mazehq", "name": "Maze"},
-    {"ats": "ashby", "slug": "monarchmoney", "name": "Monarch Money"},
-    {"ats": "ashby", "slug": "rula", "name": "Rula"},
-    {"ats": "ashby", "slug": "secureframe", "name": "Secureframe"},
-    # larger SaaS
-    {"ats": "greenhouse", "slug": "databricks", "name": "Databricks"},
-    {"ats": "greenhouse", "slug": "gusto", "name": "Gusto"},
-    # Lever (slugs taken from live design postings on jobs.lever.co; case matters)
-    {"ats": "lever", "slug": "appzen", "name": "AppZen"},
-    {"ats": "lever", "slug": "payjoy", "name": "PayJoy"},
-    {"ats": "lever", "slug": "UpMetrics", "name": "UpMetrics"},
-    {"ats": "lever", "slug": "shakacode", "name": "ShakaCode"},
-    {"ats": "lever", "slug": "pioneer-services", "name": "BNB Chain (Pioneer)"},
-    # SmartRecruiters (slugs from live postings on jobs.smartrecruiters.com)
-    {"ats": "smartrecruiters", "slug": "Wix2", "name": "Wix"},
-    {"ats": "smartrecruiters", "slug": "Xplor", "name": "Xplor"},
-    {"ats": "smartrecruiters", "slug": "PublicisGroupe", "name": "Publicis Groupe"},
-    # NOTE: greenhouse/ashby slugs verified against live runs; the lever/
-    # smartrecruiters/bonus-ashby slugs were pulled from live web-search of
-    # actual postings on those boards (2026-10-25). The per-company counts in
-    # the logs confirm which resolve -- prune any stragglers.
+# COMPANY_BOARDS = verified (ats, slug) boards we fetch every run. Slug is the
+# token from the careers URL:
+#   greenhouse      -> boards.greenhouse.io/<slug>
+#   lever           -> jobs.lever.co/<slug>            (case matters)
+#   ashby           -> jobs.ashbyhq.com/<slug>
+#   smartrecruiters -> jobs.smartrecruiters.com/<slug>
+# The discovery resolver (src/discovery.py) grows this list automatically by
+# resolving SEED_COMPANIES and companies seen in the Leads / HN streams,
+# persisting hits to the "_Watchlist" sheet tab.
+COMPANY_BOARDS: list[tuple[str, str]] = [
+    # --- Ashby (highest-yield for post-2018 startups; smallest teams first) ---
+    ("ashby", "substack"),
+    ("ashby", "payabli"),        # fintech
+    ("ashby", "posthog"),        # dev tools
+    ("ashby", "linear"),         # very design-led
+    ("ashby", "modal"),          # AI infra
+    ("ashby", "clerk"),          # dev tools
+    ("ashby", "mercury"),        # fintech
+    ("ashby", "ramp"),           # fintech
+    ("ashby", "deel"),
+    ("ashby", "mazehq"),         # design/research tool
+    ("ashby", "monarchmoney"),   # fintech
+    ("ashby", "rula"),           # health
+    ("ashby", "secureframe"),
+    ("ashby", "docker"),
+    ("ashby", "supabase"),
+    ("ashby", "replit"),
+    # --- Greenhouse (verified against live runs) ---
+    ("greenhouse", "stripe"),
+    ("greenhouse", "coinbase"),
+    ("greenhouse", "figma"),
+    ("greenhouse", "vercel"),
+    ("greenhouse", "databricks"),
+    ("greenhouse", "gusto"),
+    # --- Lever (slugs from live postings; case-sensitive) ---
+    ("lever", "appzen"),         # AI + finance
+    ("lever", "payjoy"),         # fintech
+    ("lever", "UpMetrics"),
+    ("lever", "shakacode"),
+    ("lever", "pioneer-services"),  # Web3 / fintech
+    # --- SmartRecruiters ---
+    ("smartrecruiters", "Wix2"),           # Wix
+    ("smartrecruiters", "Xplor"),          # payments
+    ("smartrecruiters", "PublicisGroupe"),
 ]
+
+# SEED_COMPANIES = candidate slugs the resolver looks up (Ashby-first), keeps
+# only if the board exists (and, with the size filter, if the team is small).
+# NOT pre-verified -- the resolver drops ones with no public board and caches
+# the result so it isn't retried every run.
+SEED_COMPANIES: list[str] = [
+    # AI (seed / Series A)
+    "decagon", "harvey", "lovable", "cartesia", "dust", "vapi",
+    "chroma", "variance", "naceai", "radicalai", "salient",
+    "consensus", "antimetal", "rove", "ando",
+    # Dev tools
+    "resend", "dub", "calcom", "mintlify", "liveblocks",
+    "graphite", "raycast", "browserbase", "attio", "clay",
+    # Fintech
+    "column", "lithic", "highnote", "moderntreasury", "mesh",
+]
+
+# --------------------------------------------------------------------------
+# Company-size tagging + small-team filter
+# --------------------------------------------------------------------------
+# A board's total open-role count is a proxy for company size. Small teams are
+# the strongest "they need a designer" signal.
+COMPANY_SIZE_SMALL_MAX: int = 15      # <= this many open roles  -> "small"
+COMPANY_SIZE_MID_MAX: int = 60        # <= this many             -> "mid"  (else "large")
+# Large companies: True drops them entirely, False keeps them flagged (the
+# scoring prompt down-ranks large teams either way).
+DROP_LARGE_COMPANIES: bool = False
+
+# --------------------------------------------------------------------------
+# Discovery resolver
+# --------------------------------------------------------------------------
+DISCOVERY_ENABLED: bool = True
+# Resolve company names seen in these streams, not just SEED_COMPANIES.
+DISCOVER_FROM_LEADS: bool = True      # Product Hunt / Show HN
+DISCOVER_FROM_HACKERNEWS: bool = True # "Who is hiring" company names (fuzzy)
+# Hard cap on resolver lookups per run (each cached afterwards, hit or miss).
+RESOLVER_MAX_PER_RUN: int = 40
+# Sheet tab that persists the resolver cache + discovered boards.
+WATCHLIST_TAB: str = "_Watchlist"
 
 # --------------------------------------------------------------------------
 # Keyword lists (lowercased matching).

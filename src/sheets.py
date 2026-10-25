@@ -32,7 +32,8 @@ TABS: dict[str, dict] = {
     STREAM_JOB: {
         "title": "Jobs",
         "headers": ["Date Found", "Score", "Role", "Company", "Why",
-                    "Salary", "Source", "Link", "JobID", "Applied?"],
+                    "Salary", "Source", "Link", "JobID", "Applied?",
+                    "Company size"],
         "id_header": "JobID",
     },
     STREAM_GIG: {
@@ -86,12 +87,55 @@ class SheetClient:
                                         cols=max(12, len(spec["headers"])))
             ws.append_row(spec["headers"], value_input_option="RAW")
         else:
-            # Ensure the header row is present (new/blank tab).
+            # Ensure the header row is present and up to date.
             first = ws.row_values(1)
+            headers = spec["headers"]
             if not first:
-                ws.update("A1", [spec["headers"]], value_input_option="RAW")
+                ws.update("A1", [headers], value_input_option="RAW")
+            elif first != headers and headers[:len(first)] == first:
+                # We only ever append columns (e.g. "Company size"); extend the
+                # existing header without disturbing the data already in place.
+                log.info("%s: extending header %d -> %d cols",
+                         title, len(first), len(headers))
+                ws.update("A1", [headers], value_input_option="RAW")
         self._ws_cache[stream] = ws
         return ws
+
+    # ---- discovery watchlist (resolver cache + discovered boards) ----
+    def _watchlist_ws(self) -> gspread.Worksheet:
+        title = config.WATCHLIST_TAB
+        try:
+            return self._ss.worksheet(title)
+        except gspread.WorksheetNotFound:
+            log.info("Creating watchlist tab: %s", title)
+            ws = self._ss.add_worksheet(title=title, rows=2000, cols=5)
+            ws.append_row(["Candidate", "ATS", "Board Slug", "Source",
+                           "First Seen"], value_input_option="RAW")
+            return ws
+
+    def read_watchlist(self) -> tuple[set[str], list[dict]]:
+        """Return (candidates already attempted, resolved boards)."""
+        ws = self._watchlist_ws()
+        rows = ws.get_all_values()[1:]  # drop header
+        attempted: set[str] = set()
+        discovered: list[dict] = []
+        for r in rows:
+            cand = (r[0] if len(r) > 0 else "").strip()
+            ats = (r[1] if len(r) > 1 else "").strip()
+            slug = (r[2] if len(r) > 2 else "").strip()
+            src = (r[3] if len(r) > 3 else "").strip()
+            if cand:
+                attempted.add(cand)
+            if ats and slug:
+                discovered.append({"ats": ats, "slug": slug, "name": slug,
+                                   "source": src or "discovered"})
+        return attempted, discovered
+
+    def append_watchlist(self, rows: list[list]) -> int:
+        if not rows:
+            return 0
+        self._watchlist_ws().append_rows(rows, value_input_option="RAW")
+        return len(rows)
 
     # ---- dedupe ----
     def existing_ids(self, stream: str) -> set[str]:
@@ -121,9 +165,17 @@ class SheetClient:
 # Row builders: Listing -> row matching each tab's header order.
 # --------------------------------------------------------------------------
 
+def _size_cell(l: Listing) -> str:
+    """e.g. 'small (11)' -- size bucket + total open roles, when known."""
+    if l.company_size and l.open_roles is not None:
+        return f"{l.company_size} ({l.open_roles})"
+    return l.company_size or ""
+
+
 def _job_row(l: Listing, date_found: str) -> list:
     return [date_found, l.score, l.title, l.company, l.reason,
-            l.salary, l.source, l.url, l.job_id, ""]  # Applied? left blank
+            l.salary, l.source, l.url, l.job_id, "",  # Applied? left blank
+            _size_cell(l)]
 
 
 def _gig_row(l: Listing, date_found: str) -> list:

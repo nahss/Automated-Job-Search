@@ -166,3 +166,38 @@ def parse_dt(value: Any) -> "datetime | None":
     except (TypeError, ValueError, IndexError):
         pass
     return None
+
+
+# --------------------------------------------------------------------------
+# Company size + slug helpers (for discovery / small-team tagging)
+# --------------------------------------------------------------------------
+
+def company_size(n: "int | None") -> str:
+    """Bucket a board's open-role count into small/mid/large (thresholds in
+    config). Empty string when the count is unknown."""
+    if n is None:
+        return ""
+    if n <= config.COMPANY_SIZE_SMALL_MAX:
+        return "small"
+    if n <= config.COMPANY_SIZE_MID_MAX:
+        return "mid"
+    return "large"
+
+
+def slug_variants(name: str) -> list[str]:
+    """Candidate URL slugs for a company name, most-likely first.
+
+    "Radical AI" -> ["radicalai", "radical-ai"]; "decagon" -> ["decagon"].
+    Only space-free forms are returned (slugs can't contain spaces).
+    """
+    import re
+    s = (name or "").strip().lower()
+    if not s:
+        return []
+    collapsed = re.sub(r"[^a-z0-9]+", "", s)          # radicalai
+    hyphenated = re.sub(r"[^a-z0-9]+", "-", s).strip("-")  # radical-ai
+    out: list[str] = []
+    for v in (collapsed, hyphenated):
+        if v and v not in out:
+            out.append(v)
+    return out

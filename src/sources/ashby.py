@@ -8,16 +8,16 @@ normalizes into the Jobs stream.
 
 from __future__ import annotations
 
-from .. import config
+from .. import boards, config
 from ..models import Listing, STREAM_JOB
-from ..util import (clip, get_json, log, matches_any, polite_sleep,
-                    strip_html, to_iso)
+from ..util import (clip, company_size, get_json, log, matches_any,
+                    polite_sleep, strip_html, to_iso)
 
 _URL = "https://api.ashbyhq.com/posting-api/job-board/{slug}"
 
 
 def _companies() -> list[dict]:
-    return [c for c in config.TARGET_COMPANIES if c.get("ats") == "ashby"]
+    return boards.boards_for("ashby")
 
 
 def fetch() -> list[Listing]:
@@ -39,6 +39,8 @@ def fetch() -> list[Listing]:
             continue
 
         jobs = data.get("jobs", []) if isinstance(data, dict) else []
+        total = len(jobs)                      # board's total open roles
+        size = company_size(total)
         kept = 0
         for j in jobs[:cap]:
             if not isinstance(j, dict):
@@ -69,6 +71,8 @@ def fetch() -> list[Listing]:
                 salary="",
                 url=j.get("jobUrl", "") or j.get("applyUrl", "") or "",
                 posted_at=to_iso(j.get("publishedAt", "")),
+                company_size=size,
+                open_roles=total,
             ))
             kept += 1
         if kept:

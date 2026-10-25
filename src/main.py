@@ -148,6 +148,84 @@ def interleave_by_source(items: list[Tagged]) -> list[Tagged]:
     return out
 
 
+def filter_company_size(tagged: list[Tagged]) -> list[Tagged]:
+    """Optionally drop listings from large companies (small teams are the
+    stronger 'they need a designer' signal). Default keeps them (flagged by
+    the Company-size column); the scoring prompt down-ranks them regardless."""
+    if not config.DROP_LARGE_COMPANIES:
+        return tagged
+    out = [t for t in tagged if t.listing.company_size != "large"]
+    dropped = len(tagged) - len(out)
+    if dropped:
+        log.info("size: dropped %d large-company listing(s)", dropped)
+    return out
+
+
+# --------------------------------------------------------------------------
+# Discovery: resolve company names -> live ATS boards, cached in the sheet.
+# --------------------------------------------------------------------------
+
+def _hn_company(title: str) -> str:
+    """Best-effort company name from a HN 'Who is hiring' comment's first line
+    (usually 'Company | Role | Location | ...')."""
+    import re
+    head = re.split(r"[|()\-–—:]", title or "", 1)[0].strip()
+    return head if 1 < len(head) <= 40 else ""
+
+
+def _candidate_names(tagged: list[Tagged]) -> list[str]:
+    """Company names worth resolving, from this run's Leads + HN listings."""
+    names: list[str] = []
+    for t in tagged:
+        l = t.listing
+        if l.stream == STREAM_LEAD and config.DISCOVER_FROM_LEADS:
+            names.append(l.company or l.title)
+        elif t.name == "hackernews" and config.DISCOVER_FROM_HACKERNEWS:
+            n = _hn_company(l.title)
+            if n:
+                names.append(n)
+    return names
+
+
+def _discover(names: list[str], attempted: set[str], source: str,
+              budget: int) -> tuple[list[dict], list[list], int]:
+    """Resolve uncached candidate names to ATS boards. Returns
+    (new boards, watchlist rows to persist, number attempted this call).
+    Records every attempt (hit or miss) so a name is resolved at most once."""
+    from . import discovery
+    from .util import now_local_str, slug_variants
+    new_boards: list[dict] = []
+    rows: list[list] = []
+    processed: set[str] = set()
+    resolved = 0
+    today = now_local_str()
+    for name in names:
+        if budget <= 0:
+            break
+        variants = slug_variants(name)
+        if not variants:
+            continue
+        key = variants[0]                     # cache key = primary slug
+        if key in attempted or key in processed:
+            continue
+        processed.add(key)
+        budget -= 1
+        res = discovery.resolve(name)
+        if res:
+            ats, slug = res
+            new_boards.append({"ats": ats, "slug": slug, "name": slug,
+                               "source": source})
+            rows.append([key, ats, slug, source, today])
+            resolved += 1
+        else:
+            rows.append([key, "", "", source, today])
+    attempted |= processed
+    if processed:
+        log.info("discovery[%s]: tried %d, resolved %d", source,
+                 len(processed), resolved)
+    return new_boards, rows, len(processed)
+
+
 def score_stream(stream: str, items: list[Tagged],
                  cv: str) -> tuple[list[Tagged], int, int]:
     """Score (or draft, for leads) and keep only those >= threshold.
@@ -188,17 +266,7 @@ def score_stream(stream: str, items: list[Tagged],
 # --------------------------------------------------------------------------
 
 def run(dry_run: bool, only: list[str] | None) -> int:
-    from . import scoring
-
-    tagged, fetched = pull(only)
-    reroute_gigs(tagged)
-    tagged = dedupe_in_memory(tagged)
-    tagged = filter_recent(tagged)
-
-    # Group by stream, preserving source names.
-    by_stream: dict[str, list[Tagged]] = defaultdict(list)
-    for t in tagged:
-        by_stream[t.listing.stream].append(t)
+    from . import boards, scoring
 
     # Scoring needs an LLM. In dry-run we tolerate its absence (fetch-only).
     have_llm = scoring.llm_available()
@@ -210,13 +278,47 @@ def run(dry_run: bool, only: list[str] | None) -> int:
             return 2
         log.warning(msg + " Dry-run will fetch only, without scoring.")
 
-    cv = scoring.load_cv()
-
-    # Connect to the sheet (skip entirely on dry-run).
+    # Connect to the sheet FIRST: discovery reads its cache and injects any
+    # discovered boards before the ATS adapters run. Skipped on dry-run.
     client = None
+    attempted: set[str] = set()
+    budget = config.RESOLVER_MAX_PER_RUN
     if not dry_run:
         from .sheets import SheetClient
         client = SheetClient.connect()
+        if config.DISCOVERY_ENABLED:
+            attempted, discovered = client.read_watchlist()
+            boards.set_discovered(discovered)
+            # Resolve uncached SEED_COMPANIES now so new boards are fetched
+            # THIS run.
+            nb, rows, n = _discover(config.SEED_COMPANIES, attempted,
+                                    "seed", budget)
+            budget -= n
+            if rows:
+                client.append_watchlist(rows)
+            if nb:
+                boards.set_discovered(discovered + nb)
+
+    cv = scoring.load_cv()
+
+    tagged, fetched = pull(only)
+    reroute_gigs(tagged)
+    tagged = dedupe_in_memory(tagged)
+
+    # Discover boards from this run's Leads/HN companies (feeds the NEXT run).
+    if client is not None and config.DISCOVERY_ENABLED and budget > 0:
+        _, rows2, _ = _discover(_candidate_names(tagged), attempted,
+                                "lead-hn", budget)
+        if rows2:
+            client.append_watchlist(rows2)
+
+    tagged = filter_recent(tagged)
+    tagged = filter_company_size(tagged)
+
+    # Group by stream, preserving source names.
+    by_stream: dict[str, list[Tagged]] = defaultdict(list)
+    for t in tagged:
+        by_stream[t.listing.stream].append(t)
 
     new_counts: dict[str, int] = defaultdict(int)
     written_counts: dict[str, int] = defaultdict(int)

@@ -37,6 +37,10 @@ class Listing:
     url: str = ""
     posted_at: str = ""               # ISO-8601 string if known, else ""
 
+    # ---- company-size signal (set by ATS adapters) ----
+    company_size: str = ""            # "small" | "mid" | "large" | ""
+    open_roles: Optional[int] = None  # total open roles on the company's board
+
     # ---- populated after scoring ----
     score: Optional[int] = None       # 0-100
     reason: str = ""                  # one short line
