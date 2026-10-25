@@ -47,10 +47,9 @@ run never crashes, and every other source still writes.**
 
 - **Jobs:** Remotive, RemoteOK, Arbeitnow, Jobicy, Himalayas, Working Nomads,
   We Work Remotely (RSS), Hacker News "Who is hiring" (Algolia API).
-- **Africa:** The Muse public API (keyless), queried per African location
-  (`THEMUSE_LOCATIONS`); matches route to the Africa tab. Note: most of the
-  other sources are global-remote, so The Muse is the main dedicated feeder
-  for Africa-located roles — coverage there is thinner than Jobs.
+- **Africa:** The Muse (keyless, per-location), **Adzuna** (South Africa —
+  free key) and **Jooble** (Nigeria + more — free key). Matches route to the
+  Africa tab. Adzuna/Jooble skip gracefully if their keys aren't set.
 - **Jobs — direct from company career pages:** Greenhouse, Lever, Ashby, and
   SmartRecruiters public JSON APIs for a curated list of companies you track
   (`TARGET_COMPANIES` in `src/config.py`). This is the same data that powers
@@ -178,6 +177,8 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 | `GOOGLE_SHEET_ID` | ✅ | The spreadsheet id from the sheet URL. |
 | `ANTHROPIC_API_KEY` | ✅ (or OpenAI) | Your Anthropic key. |
 | `PRODUCTHUNT_TOKEN` | ⬜ | Free PH developer token (Leads tab). |
+| `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | ⬜ | Free keys (developer.adzuna.com) — South Africa jobs → Africa tab. |
+| `JOOBLE_API_KEY` | ⬜ | Free key (jooble.org/api/about) — Nigeria + more → Africa tab. |
 | `LLM_MODEL` | ⬜ | Override the default model string. |
 | `LLM_PROVIDER` | ⬜ | `anthropic` (default) or `openai`. |
 | `OPENAI_API_KEY` | ⬜ | Only if `LLM_PROVIDER=openai`. |

@@ -102,6 +102,21 @@ THEMUSE_LOCATIONS: list[str] = [
     "Kigali, Rwanda",
 ]
 
+# Adzuna (free key: developer.adzuna.com). Only South Africa ("za") is in
+# Adzuna's African coverage. Each query is one API call.
+ADZUNA_COUNTRY: str = "za"
+ADZUNA_QUERIES: list[str] = [
+    "product designer", "ux designer", "ui designer", "product design",
+    "qa engineer",
+]
+
+# Jooble (free key: jooble.org/api/about). Aggregates many African countries;
+# we query each keyword x location (bounded -- keep these lists short).
+JOOBLE_KEYWORDS: list[str] = ["product designer", "ux designer", "ui/ux designer"]
+JOOBLE_LOCATIONS: list[str] = [
+    "Nigeria", "Kenya", "Ghana", "South Africa", "Egypt", "Rwanda",
+]
+
 # --------------------------------------------------------------------------
 # Timezone (dates written into the sheet)
 # --------------------------------------------------------------------------
@@ -121,6 +136,8 @@ SOURCES_ENABLED: dict[str, bool] = {
     "weworkremotely": True,
     "hackernews": True,
     "themuse": True,       # Africa-located roles (The Muse API, location-filtered)
+    "adzuna": True,        # South Africa jobs (needs ADZUNA_APP_ID/KEY, else skips)
+    "jooble": True,        # Nigeria + other African jobs (needs JOOBLE_API_KEY)
     # jobs -- direct from company career pages (ATS APIs); see TARGET_COMPANIES
     "greenhouse": True,
     "lever": True,
