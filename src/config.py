@@ -183,6 +183,7 @@ COMPANY_BOARDS: list[tuple[str, str]] = [
     ("ashby", "docker"),
     ("ashby", "supabase"),
     ("ashby", "replit"),
+    ("ashby", "claylabs"),       # Clay (GTM) -- verified via live postings
     # --- Greenhouse (verified against live runs) ---
     ("greenhouse", "stripe"),
     ("greenhouse", "coinbase"),
@@ -212,8 +213,8 @@ SEED_COMPANIES: list[str] = [
     "chroma", "variance", "naceai", "radicalai", "salient",
     "consensus", "antimetal", "rove", "ando",
     # Dev tools
-    "resend", "dub", "calcom", "mintlify", "liveblocks",
-    "graphite", "raycast", "browserbase", "attio", "clay",
+    "resend", "dub", "cal.com", "mintlify", "liveblocks",
+    "graphite", "raycast", "browserbase", "attio",
     # Fintech
     "column", "lithic", "highnote", "moderntreasury", "mesh",
 ]

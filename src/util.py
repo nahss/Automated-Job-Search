@@ -194,10 +194,11 @@ def slug_variants(name: str) -> list[str]:
     s = (name or "").strip().lower()
     if not s:
         return []
-    collapsed = re.sub(r"[^a-z0-9]+", "", s)          # radicalai
+    collapsed = re.sub(r"[^a-z0-9]+", "", s)              # radicalai
+    dotted = re.sub(r"[^a-z0-9.]+", "", s).strip(".")     # cal.com (domain-style)
     hyphenated = re.sub(r"[^a-z0-9]+", "-", s).strip("-")  # radical-ai
     out: list[str] = []
-    for v in (collapsed, hyphenated):
+    for v in (collapsed, dotted, hyphenated):
         if v and v not in out:
             out.append(v)
     return out
