@@ -89,6 +89,19 @@ AFRICA_KEYWORDS: list[str] = [
     "africa", "pan-african", "pan african",
 ]
 
+# The Muse API locations to query for African roles (its format is
+# "City, Country"). These feed the Africa tab. Edit to taste.
+THEMUSE_LOCATIONS: list[str] = [
+    "Lagos, Nigeria",
+    "Abuja, Nigeria",
+    "Nairobi, Kenya",
+    "Cape Town, South Africa",
+    "Johannesburg, South Africa",
+    "Accra, Ghana",
+    "Cairo, Egypt",
+    "Kigali, Rwanda",
+]
+
 # --------------------------------------------------------------------------
 # Timezone (dates written into the sheet)
 # --------------------------------------------------------------------------
@@ -107,6 +120,7 @@ SOURCES_ENABLED: dict[str, bool] = {
     "working_nomads": True,
     "weworkremotely": True,
     "hackernews": True,
+    "themuse": True,       # Africa-located roles (The Muse API, location-filtered)
     # jobs -- direct from company career pages (ATS APIs); see TARGET_COMPANIES
     "greenhouse": True,
     "lever": True,
@@ -132,6 +146,7 @@ FETCH_CAPS: dict[str, int] = {
     "working_nomads": 50,
     "weworkremotely": 60,
     "hackernews": 80,
+    "themuse": 2,          # pages fetched per African location (20 jobs/page)
     "greenhouse": 60,      # per company (max postings scanned)
     "lever": 60,           # per company
     "ashby": 60,           # per company

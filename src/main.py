@@ -538,6 +538,26 @@ def _summary(fetched: dict[str, int], new: dict[str, int],
 
 
 # --------------------------------------------------------------------------
+# Maintenance: one-off purge of senior-titled rows already in the sheet.
+# --------------------------------------------------------------------------
+
+def purge_senior() -> int:
+    from .sheets import SheetClient, TABS
+    client = SheetClient.connect()
+    total = tracked = 0
+    for stream in (STREAM_JOB, STREAM_AFRICA, STREAM_GIG):
+        removed, kept = client.purge_senior_rows(stream)
+        total += removed
+        tracked += kept
+        log.info("purge %s: removed %d senior row(s), kept %d you'd marked",
+                 TABS[stream]["title"], removed, kept)
+    log.info("purge-senior: removed %d senior row(s) total; kept %d that had "
+             "a status filled in (founding / 0->1 roles are never removed)",
+             total, tracked)
+    return 0
+
+
+# --------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------
 
@@ -547,12 +567,16 @@ def main(argv: list[str] | None = None) -> int:
                         help="fetch + score, print instead of writing")
     parser.add_argument("--only", nargs="+", metavar="SOURCE",
                         help="run only these source names (see config)")
+    parser.add_argument("--purge-senior", action="store_true",
+                        help="one-off: delete senior-titled rows from the sheet")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="debug logging")
     args = parser.parse_args(argv)
 
     setup_logging(logging.DEBUG if args.verbose else logging.INFO)
     try:
+        if args.purge_senior:
+            return purge_senior()
         return run(dry_run=args.dry_run, only=args.only)
     except KeyboardInterrupt:
         log.warning("interrupted")

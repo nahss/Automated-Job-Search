@@ -26,6 +26,7 @@ from . import (
     remotive,
     showhn,
     smartrecruiters,
+    themuse,
     weworkremotely,
     working_nomads,
 )
@@ -39,6 +40,7 @@ REGISTRY: dict[str, Callable[[], list[Listing]]] = {
     "working_nomads": working_nomads.fetch,
     "weworkremotely": weworkremotely.fetch,
     "hackernews": hackernews.fetch,
+    "themuse": themuse.fetch,
     # company career pages (ATS)
     "greenhouse": greenhouse.fetch,
     "lever": lever.fetch,

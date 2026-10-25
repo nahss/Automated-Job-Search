@@ -201,6 +201,46 @@ class SheetClient:
         ws.append_rows(rows, value_input_option="USER_ENTERED")
         return len(rows)
 
+    # ---- maintenance ----
+    def purge_senior_rows(self, stream: str) -> tuple[int, int]:
+        """Delete senior-titled rows from a tab. Rows whose status column
+        (Applied?/Status/Reached Out?) is filled are KEPT, so tracked
+        applications aren't lost. Returns (removed, kept_because_tracked)."""
+        from .util import title_is_senior
+        headers = TABS[stream]["headers"]
+        role_col = ("Role" if "Role" in headers
+                    else "Title" if "Title" in headers else None)
+        if role_col is None:
+            return (0, 0)
+        status_col = next((h for h in ("Applied?", "Status", "Reached Out?")
+                           if h in headers), None)
+        ws = self.worksheet(stream)
+        rows = ws.get_all_values()
+        if len(rows) < 2:
+            return (0, 0)
+        hdr = rows[0]
+        if role_col not in hdr:
+            return (0, 0)
+        ri = hdr.index(role_col)
+        si = hdr.index(status_col) if (status_col and status_col in hdr) else None
+        kept = [hdr]
+        removed = kept_tracked = 0
+        for r in rows[1:]:
+            role = r[ri] if len(r) > ri else ""
+            status = r[si].strip() if (si is not None and len(r) > si) else ""
+            if title_is_senior(role):
+                if status:
+                    kept.append(r)
+                    kept_tracked += 1
+                else:
+                    removed += 1
+            else:
+                kept.append(r)
+        if removed:
+            ws.clear()
+            ws.update("A1", kept, value_input_option="USER_ENTERED")
+        return (removed, kept_tracked)
+
 
 # --------------------------------------------------------------------------
 # Row builders: Listing -> row matching each tab's header order.

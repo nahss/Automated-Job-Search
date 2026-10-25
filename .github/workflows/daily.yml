@@ -9,7 +9,12 @@ on:
     # it (minute 32) and run a little early, so a typical delay still lands
     # in the morning. Change the time below (it is in UTC) to shift it.
     - cron: "32 4 * * *"
-  workflow_dispatch: {}   # manual "Run workflow" button
+  workflow_dispatch:      # manual "Run workflow" button
+    inputs:
+      purge_senior:
+        description: "One-off cleanup: delete senior-titled rows from the sheet (instead of a normal run)"
+        type: boolean
+        default: false
 
 concurrency:
   # Never let two runs write the sheet at once.
@@ -41,4 +46,9 @@ jobs:
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
           PRODUCTHUNT_TOKEN: ${{ secrets.PRODUCTHUNT_TOKEN }}
           SCORE_THRESHOLD: ${{ secrets.SCORE_THRESHOLD }}
-        run: python -m src.main
+        run: |
+          if [ "${{ github.event.inputs.purge_senior }}" = "true" ]; then
+            python -m src.main --purge-senior
+          else
+            python -m src.main
+          fi

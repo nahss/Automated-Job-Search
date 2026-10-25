@@ -47,6 +47,10 @@ run never crashes, and every other source still writes.**
 
 - **Jobs:** Remotive, RemoteOK, Arbeitnow, Jobicy, Himalayas, Working Nomads,
   We Work Remotely (RSS), Hacker News "Who is hiring" (Algolia API).
+- **Africa:** The Muse public API (keyless), queried per African location
+  (`THEMUSE_LOCATIONS`); matches route to the Africa tab. Note: most of the
+  other sources are global-remote, so The Muse is the main dedicated feeder
+  for Africa-located roles — coverage there is thinner than Jobs.
 - **Jobs — direct from company career pages:** Greenhouse, Lever, Ashby, and
   SmartRecruiters public JSON APIs for a curated list of companies you track
   (`TARGET_COMPANIES` in `src/config.py`). This is the same data that powers
@@ -181,6 +185,15 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 
 No secrets are ever stored in code or committed files — they come only from
 the environment / GitHub secrets.
+
+### One-off cleanup: purge senior rows
+
+To delete senior-titled rows already in the sheet (the hard filter only
+affects *new* rows), go to **Actions → Daily Job & Lead Agent → Run
+workflow**, tick **purge_senior**, and run. It removes senior-titled rows from
+Jobs / Africa / Gigs — but **keeps** any you've marked in the `Applied?` /
+`Status` column, and never removes founding / first-designer / 0→1 roles.
+Locally: `python -m src.main --purge-senior`.
 
 ### Changing the schedule or threshold
 
