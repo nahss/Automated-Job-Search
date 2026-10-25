@@ -198,6 +198,18 @@ SMALL-TEAM FIT (the candidate wants early, high-ownership roles):
   - When a role is a strong small-team / founding fit, SAY SO briefly in the
     reason (e.g. "founding designer at a seed fintech").
 
+SENIORITY (a stated seniority preference is given with each listing):
+  - PREFER mid-level / intermediate individual-contributor design roles
+    (e.g. "Product Designer", "UX Designer", "Designer", "Designer II") --
+    score these highest.
+  - Meaningfully DOWN-RANK clearly-senior and management roles so they fall
+    toward or below the keep line: Senior / Staff / Principal / Lead, and
+    Head of / Director / Manager / VP, and roles demanding 8+ years or deep
+    narrow specialization.
+  - EXCEPTION: keep founding / first-designer / 0->1 roles high even if
+    senior-titled -- those are the high-ownership early roles the candidate
+    wants.
+
 Reply with STRICT JSON only, no prose, no code fences:
 {"score": <integer 0-100>, "reason": "<one short line, <= 18 words>"}"""
 
@@ -234,6 +246,7 @@ def score_listing(listing: Listing, cv: str) -> Optional[tuple[int, str]]:
                      + "\n")
     user = (
         f"=== CANDIDATE CV ===\n{cv}\n\n"
+        f"Seniority preference: {config.SENIORITY_PREFERENCE}\n\n"
         f"=== LISTING ({listing.stream}) ===\n{size_line}"
         f"{listing.text_for_scoring()}\n\n"
         "Score this listing now."

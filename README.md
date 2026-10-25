@@ -194,6 +194,12 @@ comments: source on/off toggles, the score threshold, per-source fetch caps,
 the subreddit list, the Product Hunt topic list, the pitch-deck keyword list,
 the category keyword list, and the timezone.
 
+**Seniority:** `SENIORITY_PREFERENCE` (default mid-level / intermediate) tells
+the scorer to favor intermediate IC design roles and down-rank Senior / Staff /
+Lead / management ones (so many drop below the threshold). For a hard cut, set
+`EXCLUDE_SENIOR_TITLES = True` to drop senior-titled Jobs/Gigs outright —
+founding / first-designer / 0→1 roles are always kept.
+
 **Freshness:** the APIs serve only currently-open roles, and on top of that
 `MAX_POSTING_AGE_DAYS` (default **7**) keeps only listings posted within that
 window; set it to `0` to disable. Listings whose source gives no usable date

@@ -63,6 +63,19 @@ DROP_UNDATED_LISTINGS: bool = False
 LLM_PROVIDER: str = _env("LLM_PROVIDER", "anthropic").lower()
 LLM_MODEL: str = _env("LLM_MODEL", "claude-haiku-5-5")
 
+# Seniority preference. The scoring prompt favors this level and meaningfully
+# down-ranks clearly-senior / management roles (so many fall below the score
+# threshold and drop out). For a harder cut, set EXCLUDE_SENIOR_TITLES=True to
+# also drop senior-titled Jobs/Gigs outright. Founding / first-designer / 0->1
+# roles are always kept, even if senior-titled.
+SENIORITY_PREFERENCE: str = "mid-level / intermediate (the candidate has ~5 years)"
+EXCLUDE_SENIOR_TITLES: bool = False
+SENIOR_TITLE_KEYWORDS: list[str] = [
+    "senior", "sr.", "sr ", "staff", "principal", "lead ", "lead,",
+    "head of", "director", "vp ", "vice president", "chief", "distinguished",
+    "manager", "mgr",
+]
+
 # --------------------------------------------------------------------------
 # Timezone (dates written into the sheet)
 # --------------------------------------------------------------------------

@@ -184,6 +184,20 @@ def company_size(n: "int | None") -> str:
     return "large"
 
 
+_EARLY_ROLE_TERMS = ("founding", "first design", "first designer",
+                     "0 to 1", "0->1", "0-1")
+
+
+def title_is_senior(title: str) -> bool:
+    """True if a role title reads as clearly senior / management. Founding /
+    first-designer / 0->1 roles are never treated as senior (high-ownership
+    early roles the candidate wants)."""
+    low = (title or "").lower()
+    if any(t in low for t in _EARLY_ROLE_TERMS):
+        return False
+    return any(k in low for k in config.SENIOR_TITLE_KEYWORDS)
+
+
 def slug_variants(name: str) -> list[str]:
     """Candidate URL slugs for a company name, most-likely first.
 

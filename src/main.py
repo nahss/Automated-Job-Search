@@ -161,6 +161,25 @@ def filter_company_size(tagged: list[Tagged]) -> list[Tagged]:
     return out
 
 
+def filter_seniority(tagged: list[Tagged]) -> list[Tagged]:
+    """Optional HARD cut: drop senior-titled Jobs/Gigs when configured. The
+    scoring prompt already down-ranks senior roles softly; this is the strong
+    lever. Founding / first-designer / 0->1 roles are always kept."""
+    if not config.EXCLUDE_SENIOR_TITLES:
+        return tagged
+    from .util import title_is_senior
+    out, dropped = [], 0
+    for t in tagged:
+        if (t.listing.stream in (STREAM_JOB, STREAM_GIG)
+                and title_is_senior(t.listing.title)):
+            dropped += 1
+            continue
+        out.append(t)
+    if dropped:
+        log.info("seniority: dropped %d senior-titled listing(s)", dropped)
+    return out
+
+
 # --------------------------------------------------------------------------
 # Discovery: resolve company names -> live ATS boards, cached in the sheet.
 # --------------------------------------------------------------------------
@@ -367,6 +386,7 @@ def run(dry_run: bool, only: list[str] | None) -> int:
 
     tagged = filter_recent(tagged)
     tagged = filter_company_size(tagged)
+    tagged = filter_seniority(tagged)
 
     # Group by stream, preserving source names.
     by_stream: dict[str, list[Tagged]] = defaultdict(list)
