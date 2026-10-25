@@ -43,7 +43,10 @@ def _env_float(name: str, default: float) -> float:
 
 # Only listings scoring >= this land in the sheet. Env override wins so you
 # can tweak it from GitHub Actions without a code change.
-SCORE_THRESHOLD: int = _env_int("SCORE_THRESHOLD", 65)
+# Score bands (see scoring.py): 85-100 strong fit, 65-84 clearly relevant,
+# 40-64 tangential/partial, 0-39 not a fit. 45 (default) casts a wide net --
+# it includes most partial fits; raise toward 65 for a tighter, cleaner list.
+SCORE_THRESHOLD: int = _env_int("SCORE_THRESHOLD", 45)
 
 # Freshness: only keep listings posted within this many days. The job-board
 # and ATS APIs already serve only currently-OPEN roles; this adds a recency
@@ -180,9 +183,21 @@ TARGET_COMPANIES: list[dict] = [
     # larger SaaS
     {"ats": "greenhouse", "slug": "databricks", "name": "Databricks"},
     {"ats": "greenhouse", "slug": "gusto", "name": "Gusto"},
-    # NOTE: slugs verified against a live run (2026-10-23). Removed ones that
-    # 404'd: greenhouse/plaid, greenhouse/notion, lever/mozilla. Add your own
-    # here -- Lever and SmartRecruiters currently have no seeds.
+    # Lever (best-effort guesses -- verify via the next run's log, prune 404s)
+    {"ats": "lever", "slug": "netlify", "name": "Netlify"},
+    {"ats": "lever", "slug": "quora", "name": "Quora"},
+    {"ats": "lever", "slug": "scaleai", "name": "Scale AI"},
+    {"ats": "lever", "slug": "faire", "name": "Faire"},
+    {"ats": "lever", "slug": "plaid", "name": "Plaid"},
+    # SmartRecruiters (best-effort guesses -- identifiers are quirky and skew
+    # enterprise; verify via the log and prune the 404s)
+    {"ats": "smartrecruiters", "slug": "Square", "name": "Square"},
+    {"ats": "smartrecruiters", "slug": "Visa", "name": "Visa"},
+    {"ats": "smartrecruiters", "slug": "Ubisoft2", "name": "Ubisoft"},
+    # NOTE: greenhouse/ashby slugs above verified against a live run
+    # (2026-10-23). The lever/smartrecruiters entries are unverified guesses;
+    # the per-company counts in the logs show which ones actually resolve --
+    # replace with the companies YOU want.
 ]
 
 # --------------------------------------------------------------------------

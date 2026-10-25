@@ -171,7 +171,7 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 | `LLM_MODEL` | ⬜ | Override the default model string. |
 | `LLM_PROVIDER` | ⬜ | `anthropic` (default) or `openai`. |
 | `OPENAI_API_KEY` | ⬜ | Only if `LLM_PROVIDER=openai`. |
-| `SCORE_THRESHOLD` | ⬜ | Override the default `65`. |
+| `SCORE_THRESHOLD` | ⬜ | Override the default `45` (85-100 strong, 65-84 clearly relevant, 40-64 partial). |
 
 No secrets are ever stored in code or committed files — they come only from
 the environment / GitHub secrets.
