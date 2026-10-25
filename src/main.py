@@ -192,8 +192,9 @@ def _discover(names: list[str], attempted: set[str], source: str,
     """Resolve uncached candidate names to ATS boards. Returns
     (new boards, watchlist rows to persist, number attempted this call).
     Records every attempt (hit or miss) so a name is resolved at most once."""
+    import re
     from . import discovery
-    from .util import now_local_str, slug_variants
+    from .util import now_local_str
     new_boards: list[dict] = []
     rows: list[list] = []
     processed: set[str] = set()
@@ -202,10 +203,10 @@ def _discover(names: list[str], attempted: set[str], source: str,
     for name in names:
         if budget <= 0:
             break
-        variants = slug_variants(name)
-        if not variants:
+        # Cache key keeps dots so "cal.com" != "calcom" (distinct candidates).
+        key = re.sub(r"[^a-z0-9.]+", "", (name or "").lower()).strip(".")
+        if not key:
             continue
-        key = variants[0]                     # cache key = primary slug
         if key in attempted or key in processed:
             continue
         processed.add(key)
