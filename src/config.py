@@ -69,11 +69,24 @@ LLM_MODEL: str = _env("LLM_MODEL", "claude-haiku-5-5")
 # also drop senior-titled Jobs/Gigs outright. Founding / first-designer / 0->1
 # roles are always kept, even if senior-titled.
 SENIORITY_PREFERENCE: str = "mid-level / intermediate (the candidate has ~5 years)"
-EXCLUDE_SENIOR_TITLES: bool = False
+EXCLUDE_SENIOR_TITLES: bool = True
 SENIOR_TITLE_KEYWORDS: list[str] = [
     "senior", "sr.", "sr ", "staff", "principal", "lead ", "lead,",
     "head of", "director", "vp ", "vice president", "chief", "distinguished",
     "manager", "mgr",
+]
+
+# --------------------------------------------------------------------------
+# Africa tab: roles located in / targeting Nigeria & other African countries
+# get routed to their own "Africa" tab (matched on location / title / tags).
+# --------------------------------------------------------------------------
+AFRICA_KEYWORDS: list[str] = [
+    "nigeria", "lagos", "abuja", "kenya", "nairobi", "ghana", "accra",
+    "south africa", "johannesburg", "cape town", "egypt", "cairo",
+    "rwanda", "kigali", "uganda", "kampala", "tanzania", "ethiopia",
+    "addis ababa", "morocco", "casablanca", "senegal", "dakar",
+    "ivory coast", "abidjan", "cameroon", "zambia", "zimbabwe", "tunisia",
+    "africa", "pan-african", "pan african",
 ]
 
 # --------------------------------------------------------------------------

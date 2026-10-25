@@ -91,6 +91,7 @@ def fetch() -> list[Listing]:
                 description=clip(" · ".join(desc_bits)),
                 tags=[t for t in (loc, dept) if t],
                 salary="",
+                location=loc,
                 url=url,
                 posted_at=to_iso(p.get("releasedDate", "")),
                 company_size=size,

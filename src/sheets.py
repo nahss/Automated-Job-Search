@@ -19,8 +19,8 @@ from google.oauth2.service_account import Credentials
 
 from . import config
 from .models import (Listing, STREAM_JOB, STREAM_GIG, STREAM_LEAD,
-                     STREAM_PITCH)
-from .util import log, now_local_str
+                     STREAM_PITCH, STREAM_AFRICA)
+from .util import log, now_local_str, content_key
 
 _SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -56,6 +56,13 @@ TABS: dict[str, dict] = {
                     "Opener (draft)", "Board Link", "CompanyID",
                     "Reached Out?"],
         "id_header": "CompanyID",
+    },
+    STREAM_AFRICA: {
+        "title": "Africa",
+        "headers": ["Date Found", "Score", "Role", "Company", "Location",
+                    "Why", "Salary", "Source", "Link", "JobID", "Applied?",
+                    "Company size"],
+        "id_header": "JobID",
     },
 }
 
@@ -160,6 +167,32 @@ class SheetClient:
         values = ws.col_values(col_idx)[1:]  # drop header cell
         return {v.strip() for v in values if v.strip()}
 
+    def existing_content_keys(self, stream: str) -> set[str]:
+        """Normalized (company|role) keys already in a tab, so the SAME role
+        from a different source isn't written twice. Only for tabs that have
+        both Role and Company columns (Jobs, Africa)."""
+        spec = TABS[stream]
+        headers = spec["headers"]
+        if "Role" not in headers or "Company" not in headers:
+            return set()
+        ws = self.worksheet(stream)
+        rows = ws.get_all_values()
+        if len(rows) < 2:
+            return set()
+        hdr = rows[0]
+        try:
+            ri, ci = hdr.index("Role"), hdr.index("Company")
+        except ValueError:
+            return set()
+        out: set[str] = set()
+        for r in rows[1:]:
+            role = r[ri] if len(r) > ri else ""
+            comp = r[ci] if len(r) > ci else ""
+            k = content_key(comp, role)
+            if k:
+                out.add(k)
+        return out
+
     # ---- writing ----
     def append_rows(self, stream: str, rows: list[list]) -> int:
         if not rows:
@@ -197,6 +230,13 @@ def _pitch_row(l: Listing, date_found: str) -> list:
             l.opener, l.url, l.job_id, ""]  # Reached Out? left blank
 
 
+def _africa_row(l: Listing, date_found: str) -> list:
+    location = l.location or (", ".join(l.tags) if l.tags else "")
+    return [date_found, l.score, l.title, l.company, location, l.reason,
+            l.salary, l.source, l.url, l.job_id, "",  # Applied? left blank
+            _size_cell(l)]
+
+
 def build_row(l: Listing, date_found: str) -> list:
     if l.stream == STREAM_JOB:
         return _job_row(l, date_found)
@@ -204,6 +244,8 @@ def build_row(l: Listing, date_found: str) -> list:
         return _gig_row(l, date_found)
     if l.stream == STREAM_PITCH:
         return _pitch_row(l, date_found)
+    if l.stream == STREAM_AFRICA:
+        return _africa_row(l, date_found)
     if l.stream == STREAM_LEAD:
         # Leads: Date | Product | Tagline | Fit | Opener | Maker | Contact |
         #        PH Link | Website? | PostID | Reached Out?

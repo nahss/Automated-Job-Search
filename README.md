@@ -37,6 +37,7 @@ run never crashes, and every other source still writes.**
 | Tab       | What lands there |
 |-----------|------------------|
 | **Jobs**  | Scored listings from the job boards + company career pages (ATS). |
+| **Africa**| Scored roles located in / targeting Nigeria & other African countries (routed out of Jobs by location). |
 | **Gigs**  | Freelance + pitch-deck leads from Reddit, plus any job-board role matching the pitch-deck/freelance keywords. |
 | **Leads** | New startups to pitch, from Product Hunt (+ optional Show HN). Each gets an AI-drafted one-line opener in your voice. |
 | **Pitch** | Tracked companies with a **live board but no design role** — i.e. hiring/growing yet no designer. Strongest cold-pitch signal; each gets an AI-drafted opener. |
@@ -77,7 +78,10 @@ are yours to fill in. Dates are written in **Africa/Lagos** time (UTC+1).
 - **Leads:** `Date Found · Product · Tagline · Fit · Opener (draft) · Maker · X / Contact · PH Link · Website? · PostID · Reached Out?`
 
 `JobID`/`PostID` = `{source}:{source_id}`, the dedupe key. Running the agent
-twice back-to-back adds **zero** duplicate rows.
+twice back-to-back adds **zero** duplicate rows. On top of that, Jobs/Africa
+also dedupe by **normalized company + role**, so the *same* role served by two
+different sources (e.g. RemoteOK **and** the company's own ATS board) is
+written once, not twice.
 
 ---
 

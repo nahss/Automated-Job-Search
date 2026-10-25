@@ -70,6 +70,7 @@ def fetch() -> list[Listing]:
                 description=clip(content),
                 tags=[loc] if loc else [],
                 salary="",
+                location=loc,
                 url=j.get("absolute_url", "") or "",
                 posted_at=to_iso(j.get("updated_at", "")),
                 company_size=size,

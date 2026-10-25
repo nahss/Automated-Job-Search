@@ -77,6 +77,7 @@ def fetch() -> list[Listing]:
                 description=clip(desc),
                 tags=tags,
                 salary="",
+                location=loc,
                 url=p.get("hostedUrl", "") or p.get("applyUrl", "") or "",
                 posted_at=_posted(p.get("createdAt")),
                 company_size=size,

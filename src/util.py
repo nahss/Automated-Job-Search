@@ -188,6 +188,30 @@ _EARLY_ROLE_TERMS = ("founding", "first design", "first designer",
                      "0 to 1", "0->1", "0-1")
 
 
+def content_key(company: str, title: str) -> str:
+    """Normalized (company|title) key for catching the SAME role served by
+    different sources (which have different job_ids). Drops parentheticals and
+    punctuation so 'Product Designer (Remote)' == 'Product Designer'."""
+    import re
+
+    def norm(s: str) -> str:
+        s = (s or "").lower()
+        s = re.sub(r"\(.*?\)|\[.*?\]", " ", s)     # drop (Remote), [Contract]
+        s = re.sub(r"[^a-z0-9]+", " ", s).strip()
+        return s
+
+    c, t = norm(company), norm(title)
+    return f"{c}|{t}" if (c or t) else ""
+
+
+def is_african(title: str, location: str, tags: list[str]) -> bool:
+    """True if a role is located in / targets an African country. Checks
+    location, title and tags (not the free-text body, to avoid false hits on
+    'expanding across Africa')."""
+    blob = f"{title} {location} {' '.join(tags or [])}".lower()
+    return any(k in blob for k in config.AFRICA_KEYWORDS)
+
+
 def title_is_senior(title: str) -> bool:
     """True if a role title reads as clearly senior / management. Founding /
     first-designer / 0->1 roles are never treated as senior (high-ownership

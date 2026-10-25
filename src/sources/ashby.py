@@ -73,6 +73,7 @@ def fetch() -> list[Listing]:
                 description=clip(desc),
                 tags=tags,
                 salary="",
+                location=loc,
                 url=j.get("jobUrl", "") or j.get("applyUrl", "") or "",
                 posted_at=to_iso(j.get("publishedAt", "")),
                 company_size=size,

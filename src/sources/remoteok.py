@@ -56,6 +56,7 @@ def fetch() -> list[Listing]:
             description=clip(strip_html(item.get("description", "") or "")),
             tags=[str(t) for t in tags],
             salary=_salary(item),
+            location=item.get("location", "") or "",
             url=item.get("url", "") or "",
             posted_at=to_iso(item.get("date", "")),
         ))

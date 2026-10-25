@@ -15,6 +15,7 @@ STREAM_JOB = "job"
 STREAM_GIG = "gig"
 STREAM_LEAD = "lead"
 STREAM_PITCH = "pitch"   # company has a live board but no design role -> cold pitch
+STREAM_AFRICA = "africa"  # role located in Nigeria / another African country
 
 
 @dataclass
@@ -35,6 +36,7 @@ class Listing:
     description: str = ""
     tags: list[str] = field(default_factory=list)
     salary: str = ""                  # free-text; sources are inconsistent
+    location: str = ""                # free-text location, when the source gives one
     url: str = ""
     posted_at: str = ""               # ISO-8601 string if known, else ""
 

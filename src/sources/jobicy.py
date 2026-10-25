@@ -61,6 +61,7 @@ def fetch() -> list[Listing]:
                 _first(job, "jobExcerpt", "jobDescription", "description")))),
             tags=tags,
             salary=str(_first(job, "annualSalaryMin", "salary", "")) or "",
+            location=str(_first(job, "jobGeo", "geo", "")),
             url=str(_first(job, "url", "link")),
             posted_at=to_iso(_first(job, "pubDate", "date", "")),
         ))

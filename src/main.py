@@ -25,12 +25,14 @@ except Exception:
     pass
 
 from . import config
-from .models import Listing, STREAM_JOB, STREAM_GIG, STREAM_LEAD
+from .models import (Listing, STREAM_JOB, STREAM_GIG, STREAM_LEAD,
+                     STREAM_AFRICA)
 from .sources import REGISTRY
 from .util import log, matches_any, setup_logging
 
 # Streams in sheet-writing order, with human labels for the summary.
-_STREAMS = [(STREAM_JOB, "Jobs"), (STREAM_GIG, "Gigs"), (STREAM_LEAD, "Leads")]
+_STREAMS = [(STREAM_JOB, "Jobs"), (STREAM_AFRICA, "Africa"),
+            (STREAM_GIG, "Gigs"), (STREAM_LEAD, "Leads")]
 
 # Extra terms (besides the pitch-deck list) that reroute a job -> gig.
 _FREELANCE_TERMS = ["freelance", "contract", "part-time", "part time",
@@ -86,16 +88,44 @@ def reroute_gigs(tagged: list[Tagged]) -> None:
 
 
 def dedupe_in_memory(tagged: list[Tagged]) -> list[Tagged]:
-    """Drop duplicate job_ids within this run (feeds re-serve overlap)."""
-    seen: set[str] = set()
+    """Drop duplicates within this run. Two kinds:
+      - same job_id (a feed re-serving the same posting), and
+      - same (company|role) across DIFFERENT sources -- e.g. a role listed on
+        both RemoteOK and the company's own ATS board -- which have different
+        job_ids but are the same job. Content dedupe applies to Jobs/Africa.
+    """
+    from .util import content_key
+    seen_ids: set[str] = set()
+    seen_content: set[str] = set()
     out: list[Tagged] = []
     for t in tagged:
         jid = t.listing.job_id
-        if jid in seen:
+        if jid in seen_ids:
             continue
-        seen.add(jid)
+        if t.listing.stream in (STREAM_JOB, STREAM_AFRICA):
+            ck = content_key(t.listing.company, t.listing.title)
+            if ck and ck in seen_content:
+                seen_ids.add(jid)
+                continue
+            if ck:
+                seen_content.add(ck)
+        seen_ids.add(jid)
         out.append(t)
     return out
+
+
+def reroute_africa(tagged: list[Tagged]) -> None:
+    """Jobs located in / targeting an African country move to the Africa tab."""
+    from .util import is_african
+    moved = 0
+    for t in tagged:
+        if t.listing.stream != STREAM_JOB:
+            continue
+        if is_african(t.listing.title, t.listing.location, t.listing.tags):
+            t.listing.stream = STREAM_AFRICA
+            moved += 1
+    if moved:
+        log.info("rerouted %d job(s) -> Africa tab", moved)
 
 
 def filter_recent(tagged: list[Tagged]) -> list[Tagged]:
@@ -375,6 +405,7 @@ def run(dry_run: bool, only: list[str] | None) -> int:
     boards.reset_stats()
     tagged, fetched = pull(only)
     reroute_gigs(tagged)
+    reroute_africa(tagged)
     tagged = dedupe_in_memory(tagged)
 
     # Discover boards from this run's Leads/HN companies (feeds the NEXT run).
@@ -406,6 +437,14 @@ def run(dry_run: bool, only: list[str] | None) -> int:
         if client is not None:
             existing = client.existing_ids(stream)
             items = [t for t in items if t.listing.job_id not in existing]
+            # Also skip the same (company|role) already in the tab from
+            # another source (Jobs/Africa only).
+            if stream in (STREAM_JOB, STREAM_AFRICA):
+                from .util import content_key
+                seen_content = client.existing_content_keys(stream)
+                if seen_content:
+                    items = [t for t in items if content_key(
+                        t.listing.company, t.listing.title) not in seen_content]
         for t in items:
             new_counts[t.name] += 1
 
