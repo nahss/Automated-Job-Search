@@ -231,6 +231,17 @@ COMPANY_SIZE_MID_MAX: int = 60        # <= this many             -> "mid"  (else
 DROP_LARGE_COMPANIES: bool = False
 
 # --------------------------------------------------------------------------
+# Pitch tab: companies with a LIVE board but NO matching design role -- i.e.
+# they're hiring (and growing) yet have no designer. Strongest cold-pitch
+# signal. Each gets an AI-drafted opener in your voice.
+# --------------------------------------------------------------------------
+PITCH_ENABLED: bool = True
+# Only pitch companies whose team size (open-role count) is one of these.
+PITCH_SIZES: set[str] = {"small", "mid"}
+# Max new pitch companies to draft openers for per run (bounds LLM spend).
+MAX_PITCH_PER_RUN: int = 40
+
+# --------------------------------------------------------------------------
 # Discovery resolver
 # --------------------------------------------------------------------------
 DISCOVERY_ENABLED: bool = True

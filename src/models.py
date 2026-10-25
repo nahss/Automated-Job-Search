@@ -14,6 +14,7 @@ from typing import Optional
 STREAM_JOB = "job"
 STREAM_GIG = "gig"
 STREAM_LEAD = "lead"
+STREAM_PITCH = "pitch"   # company has a live board but no design role -> cold pitch
 
 
 @dataclass

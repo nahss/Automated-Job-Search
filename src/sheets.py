@@ -18,7 +18,8 @@ import gspread
 from google.oauth2.service_account import Credentials
 
 from . import config
-from .models import Listing, STREAM_JOB, STREAM_GIG, STREAM_LEAD
+from .models import (Listing, STREAM_JOB, STREAM_GIG, STREAM_LEAD,
+                     STREAM_PITCH)
 from .util import log, now_local_str
 
 _SCOPES = [
@@ -48,6 +49,13 @@ TABS: dict[str, dict] = {
                     "Opener (draft)", "Maker", "X / Contact", "PH Link",
                     "Website?", "PostID", "Reached Out?"],
         "id_header": "PostID",
+    },
+    STREAM_PITCH: {
+        "title": "Pitch",
+        "headers": ["Date Found", "Company", "ATS", "Open roles", "Size",
+                    "Opener (draft)", "Board Link", "CompanyID",
+                    "Reached Out?"],
+        "id_header": "CompanyID",
     },
 }
 
@@ -183,11 +191,19 @@ def _gig_row(l: Listing, date_found: str) -> list:
             l.salary, l.source, l.url, l.job_id, ""]  # Status left blank
 
 
+def _pitch_row(l: Listing, date_found: str) -> list:
+    ats = l.tags[0] if l.tags else ""
+    return [date_found, l.company, ats, l.open_roles, l.company_size,
+            l.opener, l.url, l.job_id, ""]  # Reached Out? left blank
+
+
 def build_row(l: Listing, date_found: str) -> list:
     if l.stream == STREAM_JOB:
         return _job_row(l, date_found)
     if l.stream == STREAM_GIG:
         return _gig_row(l, date_found)
+    if l.stream == STREAM_PITCH:
+        return _pitch_row(l, date_found)
     if l.stream == STREAM_LEAD:
         # Leads: Date | Product | Tagline | Fit | Opener | Maker | Contact |
         #        PH Link | Website? | PostID | Reached Out?

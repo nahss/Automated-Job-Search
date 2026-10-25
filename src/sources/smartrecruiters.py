@@ -51,6 +51,7 @@ def fetch() -> list[Listing]:
             data = get_json(_URL.format(slug=slug), params={"limit": cap})
         except Exception as e:
             log.warning("smartrecruiters[%s]: fetch failed: %s", slug, e)
+            boards.record_stat("smartrecruiters", slug, name, False, 0, 0, [])
             polite_sleep()
             continue
 
@@ -61,10 +62,13 @@ def fetch() -> list[Listing]:
             total = len(postings)
         size = company_size(total)
         kept = 0
+        titles: list[str] = []
         for p in postings:
             if not isinstance(p, dict):
                 continue
             title = p.get("name", "") or ""
+            if len(titles) < 6:
+                titles.append(title)
             dept = _label(p.get("department"))
             func = _label(p.get("function"))
             loc = _location(p.get("location"))
@@ -93,6 +97,7 @@ def fetch() -> list[Listing]:
                 open_roles=total,
             ))
             kept += 1
+        boards.record_stat("smartrecruiters", slug, name, True, total, kept, titles)
         if kept:
             log.info("smartrecruiters[%s]: %d matched", slug, kept)
         polite_sleep()

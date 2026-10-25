@@ -227,6 +227,57 @@ def _discover(names: list[str], attempted: set[str], source: str,
     return new_boards, rows, len(processed)
 
 
+def _build_pitch(client, cv: str, dry_run: bool) -> int:
+    """Companies with a LIVE board but zero matching design roles -> a cold-
+    pitch list with an AI-drafted opener in the candidate's voice. Deduped
+    against the Pitch tab so a company is pitched once."""
+    from . import boards, scoring
+    from .models import Listing, STREAM_PITCH
+    from .util import company_size
+
+    candidates = []
+    for s in boards.stats():
+        if not s["reachable"] or s["total"] <= 0 or s["matched"] > 0:
+            continue  # unreachable / not hiring / already has a design role
+        size = company_size(s["total"])
+        if size not in config.PITCH_SIZES:
+            continue  # pitch only small/mid teams by default
+        candidates.append((s, size))
+    if not candidates:
+        return 0
+
+    existing = client.existing_ids(STREAM_PITCH) if client is not None else set()
+    new = [(s, size) for s, size in candidates
+           if f"pitch:{s['ats']}:{s['slug']}" not in existing]
+    if len(new) > config.MAX_PITCH_PER_RUN:
+        log.info("pitch: capping %d new -> %d", len(new), config.MAX_PITCH_PER_RUN)
+        new = new[:config.MAX_PITCH_PER_RUN]
+
+    listings: list[Listing] = []
+    for s, size in new:
+        opener = scoring.draft_pitch(s["name"], s["titles"], cv)
+        if not opener:
+            continue
+        listings.append(Listing(
+            source=f"pitch:{s['ats']}", source_id=s["slug"],
+            stream=STREAM_PITCH, company=s["name"], tags=[s["ats"]],
+            open_roles=s["total"], company_size=size, opener=opener,
+            url=boards.board_url(s["ats"], s["slug"])))
+
+    if dry_run:
+        print(f"\n=== Pitch: {len(listings)} companies (live board, no designer) ===")
+        for l in listings:
+            print(f"  {l.company} [{l.tags[0]}:{l.source_id}] "
+                  f"({l.company_size}, {l.open_roles} roles)")
+            print(f"        {l.opener}")
+        return len(listings)
+
+    from .sheets import write_listings
+    n = write_listings(client, STREAM_PITCH, listings)
+    log.info("Pitch: wrote %d company(ies)", n)
+    return n
+
+
 def score_stream(stream: str, items: list[Tagged],
                  cv: str) -> tuple[list[Tagged], int, int]:
     """Score (or draft, for leads) and keep only those >= threshold.
@@ -302,6 +353,7 @@ def run(dry_run: bool, only: list[str] | None) -> int:
 
     cv = scoring.load_cv()
 
+    boards.reset_stats()
     tagged, fetched = pull(only)
     reroute_gigs(tagged)
     tagged = dedupe_in_memory(tagged)
@@ -363,6 +415,11 @@ def run(dry_run: bool, only: list[str] | None) -> int:
         for t in kept:
             written_counts[t.name] += 1
         log.info("%s: wrote %d row(s)", label, written)
+
+    # Cold-pitch list: companies with a live board but no design role.
+    scoring_all_failed = total_attempts > 0 and total_failures == total_attempts
+    if config.PITCH_ENABLED and have_llm and not scoring_all_failed:
+        _build_pitch(client, cv, dry_run)
 
     _summary(fetched, new_counts, written_counts, dry_run)
 

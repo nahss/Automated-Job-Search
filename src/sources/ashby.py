@@ -35,6 +35,7 @@ def fetch() -> list[Listing]:
                             params={"includeCompensation": "true"})
         except Exception as e:
             log.warning("ashby[%s]: fetch failed: %s", slug, e)
+            boards.record_stat("ashby", slug, name, False, 0, 0, [])
             polite_sleep()
             continue
 
@@ -42,10 +43,13 @@ def fetch() -> list[Listing]:
         total = len(jobs)                      # board's total open roles
         size = company_size(total)
         kept = 0
+        titles: list[str] = []
         for j in jobs[:cap]:
             if not isinstance(j, dict):
                 continue
             title = j.get("title", "") or ""
+            if len(titles) < 6:
+                titles.append(title)
             dept = j.get("department", "") or ""
             team = j.get("team", "") or ""
             desc = j.get("descriptionPlain") or strip_html(
@@ -75,6 +79,7 @@ def fetch() -> list[Listing]:
                 open_roles=total,
             ))
             kept += 1
+        boards.record_stat("ashby", slug, name, True, total, kept, titles)
         if kept:
             log.info("ashby[%s]: %d matched", slug, kept)
         polite_sleep()

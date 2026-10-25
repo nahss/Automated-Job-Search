@@ -41,3 +41,38 @@ def all_boards() -> list[dict]:
 
 def boards_for(ats: str) -> list[dict]:
     return [b for b in all_boards() if b["ats"] == ats]
+
+
+# --------------------------------------------------------------------------
+# Per-run board stats (feeds the Pitch tab: boards that are live but have no
+# design role -> "they're hiring but have no designer").
+# --------------------------------------------------------------------------
+_stats: list[dict] = []
+
+
+def reset_stats() -> None:
+    _stats.clear()
+
+
+def record_stat(ats: str, slug: str, name: str, reachable: bool,
+                total: int, matched: int, titles: list[str]) -> None:
+    _stats.append({"ats": ats, "slug": slug, "name": name,
+                   "reachable": reachable, "total": total,
+                   "matched": matched, "titles": list(titles or [])})
+
+
+def stats() -> list[dict]:
+    return list(_stats)
+
+
+_URL_TEMPLATES = {
+    "greenhouse": "https://boards.greenhouse.io/{slug}",
+    "lever": "https://jobs.lever.co/{slug}",
+    "ashby": "https://jobs.ashbyhq.com/{slug}",
+    "smartrecruiters": "https://jobs.smartrecruiters.com/{slug}",
+}
+
+
+def board_url(ats: str, slug: str) -> str:
+    tmpl = _URL_TEMPLATES.get(ats)
+    return tmpl.format(slug=slug) if tmpl else ""

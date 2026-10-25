@@ -32,13 +32,15 @@ the pipeline is source-agnostic. Each source lives in its own module under
 (network, API shape change, empty), it logs a warning and is skipped — the
 run never crashes, and every other source still writes.**
 
-### Three output streams (tabs)
+### Output tabs
 
 | Tab       | What lands there |
 |-----------|------------------|
-| **Jobs**  | Scored listings from the job-board APIs. |
+| **Jobs**  | Scored listings from the job boards + company career pages (ATS). |
 | **Gigs**  | Freelance + pitch-deck leads from Reddit, plus any job-board role matching the pitch-deck/freelance keywords. |
-| **Leads** | New startups to pitch, from Product Hunt (+ optional Show HN). Each lead also gets an AI-drafted one-line outreach opener in your voice. |
+| **Leads** | New startups to pitch, from Product Hunt (+ optional Show HN). Each gets an AI-drafted one-line opener in your voice. |
+| **Pitch** | Tracked companies with a **live board but no design role** — i.e. hiring/growing yet no designer. Strongest cold-pitch signal; each gets an AI-drafted opener. |
+| **`_Watchlist`** | The discovery resolver's cache + auto-discovered boards (utility tab — see below). |
 
 ### Sources (all free, keyless unless noted)
 
@@ -237,6 +239,18 @@ scoring prompt **boosts** founding/first-designer, 0→1, generalist, and
 seed/Series-A roles at small teams while **down-ranking** large/established
 ones. Large companies are kept (flagged) by default; set
 `DROP_LARGE_COMPANIES = True` to drop them entirely.
+
+### Pitch tab (companies hiring with no designer)
+
+Every run records, per tracked company, whether its board is live, how many
+roles it has open, and how many are design roles. A company that's **hiring
+(board live, roles open) but has zero design roles** is the strongest
+cold-pitch target — they're scaling without a designer. Those land in the
+**Pitch** tab, small/mid teams by default (`PITCH_SIZES`), each with an
+AI-drafted one-line opener in your voice (the LLM infers what they do from
+their open roles). Deduped so a company is pitched once; `MAX_PITCH_PER_RUN`
+bounds it, `PITCH_ENABLED` toggles it. Columns: `Company · ATS · Open roles ·
+Size · Opener (draft) · Board Link · CompanyID · Reached Out?`.
 
 ---
 

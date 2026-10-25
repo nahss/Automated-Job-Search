@@ -37,6 +37,7 @@ def fetch() -> list[Listing]:
             data = get_json(_URL.format(slug=slug), params={"content": "true"})
         except Exception as e:
             log.warning("greenhouse[%s]: fetch failed: %s", slug, e)
+            boards.record_stat("greenhouse", slug, name, False, 0, 0, [])
             polite_sleep()
             continue
 
@@ -44,10 +45,13 @@ def fetch() -> list[Listing]:
         total = len(jobs)                      # board's total open roles
         size = company_size(total)
         kept = 0
+        titles: list[str] = []
         for j in jobs[:cap]:
             if not isinstance(j, dict):
                 continue
             title = j.get("title", "") or ""
+            if len(titles) < 6:
+                titles.append(title)
             # Greenhouse `content` is HTML-entity-encoded HTML.
             content = strip_html(html.unescape(j.get("content", "") or ""))
             if not matches_any(f"{title}\n{content}", config.CATEGORY_KEYWORDS):
@@ -72,6 +76,7 @@ def fetch() -> list[Listing]:
                 open_roles=total,
             ))
             kept += 1
+        boards.record_stat("greenhouse", slug, name, True, total, kept, titles)
         if kept:
             log.info("greenhouse[%s]: %d matched", slug, kept)
         polite_sleep()

@@ -42,6 +42,7 @@ def fetch() -> list[Listing]:
             data = get_json(_URL.format(slug=slug), params={"mode": "json"})
         except Exception as e:
             log.warning("lever[%s]: fetch failed: %s", slug, e)
+            boards.record_stat("lever", slug, name, False, 0, 0, [])
             polite_sleep()
             continue
 
@@ -49,10 +50,13 @@ def fetch() -> list[Listing]:
         total = len(postings)                  # board's total open roles
         size = company_size(total)
         kept = 0
+        titles: list[str] = []
         for p in postings[:cap]:
             if not isinstance(p, dict):
                 continue
             title = p.get("text", "") or ""
+            if len(titles) < 6:
+                titles.append(title)
             cats = p.get("categories") or {}
             team = cats.get("team", "") if isinstance(cats, dict) else ""
             loc = cats.get("location", "") if isinstance(cats, dict) else ""
@@ -79,6 +83,7 @@ def fetch() -> list[Listing]:
                 open_roles=total,
             ))
             kept += 1
+        boards.record_stat("lever", slug, name, True, total, kept, titles)
         if kept:
             log.info("lever[%s]: %d matched", slug, kept)
         polite_sleep()

@@ -288,3 +288,54 @@ def draft_lead(listing: Listing, cv: str) -> Optional[tuple[int, str]]:
         log.warning("opener: missing fit/opener for %s", listing.job_id)
         return None
     return fit, opener
+
+
+_PITCH_SYSTEM = """\
+You draft a ONE-LINE cold outreach opener for the candidate to send to a
+company that is HIRING (growing) but currently has NO designer / no design
+role posted -- a prime moment to pitch design services.
+
+You are given the company name and a sample of its open (non-design) roles,
+which hint at what the company does and its stage. Infer the domain (fintech,
+dev tools, AI, health, e-commerce, etc.) from those roles.
+
+The candidate's voice: warm, direct, confident, concise, human-sounding.
+Fixed project pricing, mirrors the client's language, ends with a
+conversational question. The opener must:
+  - sound like a real person who looked at the company,
+  - reference what the company likely does (from the roles/domain),
+  - note (implicitly) they're scaling without dedicated design, and name a
+    concrete design angle (onboarding, core flows, design system, visual
+    polish, pitch deck),
+  - end with a conversational question,
+  - be one or two sentences, never templated or salesy.
+
+Reply with STRICT JSON only, no prose, no code fences:
+{"opener": "<one or two sentences>"}"""
+
+
+def draft_pitch(company: str, role_titles: list[str],
+                cv: str) -> Optional[str]:
+    """One-line cold-pitch opener for a company hiring without a designer.
+    Returns the opener, or None on failure (logged)."""
+    roles = ", ".join(role_titles[:6]) if role_titles else \
+        "(no role titles available)"
+    user = (
+        f"=== CANDIDATE (for voice/skills) ===\n{cv}\n\n"
+        f"=== COMPANY ===\nName: {company}\n"
+        f"Currently open roles (non-design): {roles}\n\n"
+        "Draft the opener now."
+    )
+    try:
+        raw = _complete(_PITCH_SYSTEM, user, max_tokens=300)
+    except Exception as e:
+        global LAST_ERROR
+        LAST_ERROR = str(e)
+        log.warning("pitch failed for %s: %s", company, e)
+        return None
+    obj = _extract_json(raw)
+    if not obj:
+        log.warning("pitch: unparseable JSON for %s: %r", company, raw[:120])
+        return None
+    opener = str(obj.get("opener", "")).strip()
+    return opener or None
